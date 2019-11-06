@@ -1,0 +1,6 @@
+.*.kate-swp
+
+*.o
+
+/libsh-treis.hpp
+/stamp
