@@ -479,6 +479,8 @@ xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 
 //@     _fd = other._fd;
 //@     other._fd = -1;
+
+//@     return *this;
 //@   }
 
 //@   fd &operator= (const fd &) = delete;
