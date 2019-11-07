@@ -41,6 +41,7 @@
 
 // Мелкие замечания
 // - Не обрабатываем особо EINTR у close, т. к. я не знаю, у каких ещё функций так надо делать
+// - Не используемые вещи отмечены nunu (not used not used)
 
 //@ #pragma once
 //@ #include <functional>
@@ -151,7 +152,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-xwrite (int fildes, const void *buf, size_t nbyte)//@;
+xwrite_nunu (int fildes, const void *buf, size_t nbyte)//@;
 {
   ssize_t result = write (fildes, buf, nbyte);
 
@@ -188,7 +189,7 @@ xread (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xfgetc (FILE *stream)//@;
+xfgetc_nunu (FILE *stream)//@;
 {
   clearerr (stream);
 
@@ -208,7 +209,7 @@ xfgetc (FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xgetchar (void)//@;
+xgetchar_nunu (void)//@;
 {
   clearerr (stdin);
 
@@ -280,7 +281,7 @@ xopen2 (const char *path, int oflag)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-xopen3 (const char *path, int oflag, mode_t mode)//@;
+xopen3_nunu (const char *path, int oflag, mode_t mode)//@;
 {
   int result = open (path, oflag, mode);
 
@@ -345,9 +346,9 @@ xprintf (const char *format, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 char //@
-xxfgetc (FILE *stream)//@;
+xxfgetc_nunu (FILE *stream)//@;
 {
-  int result = xfgetc (stream);
+  int result = xfgetc_nunu (stream);
 
   if (result == EOF)
     {
@@ -363,9 +364,9 @@ xxfgetc (FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 char //@
-xxgetchar ()//@;
+xxgetchar_nunu (void)//@;
 {
-  int result = xgetchar ();
+  int result = xgetchar_nunu ();
 
   if (result == EOF)
     {
@@ -389,7 +390,7 @@ read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
   ssize_t have_read = 0;
 
-  while (have_read < nbyte)
+  while (have_read < (ssize_t)nbyte)
     {
       ssize_t result_of_xread = xread (fildes, (char *)buf + have_read, nbyte - have_read);
 
@@ -410,11 +411,11 @@ read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 bool //@
-xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+xread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 {
   ssize_t have_read = read_repeatedly (fildes, buf, nbyte);
 
-  if (have_read == nbyte)
+  if (have_read == (ssize_t)nbyte)
     {
       return true;
     }
@@ -432,9 +433,9 @@ xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 {
-  if (!xread_repeatedly (fildes, buf, nbyte))
+  if (!xread_repeatedly_nunu (fildes, buf, nbyte))
     {
       THROW_MESSAGE ("EOF");
     }
@@ -449,7 +450,7 @@ xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 //@ {
 //@ };
 
-//@ struct open3_tag
+//@ struct open3_tag_nunu
 //@ {
 //@ };
 
@@ -466,9 +467,9 @@ xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 //@     _exceptions = std::uncaught_exceptions ();
 //@   }
 
-//@   fd (open3_tag, const char *path, int oflag, mode_t mode)
+//@   fd (open3_tag_nunu, const char *path, int oflag, mode_t mode)
 //@   {
-//@     _fd = ::libsh_treis::libc::no_raii::xopen3 (path, oflag, mode);
+//@     _fd = ::libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode);
 //@     _exceptions = std::uncaught_exceptions ();
 //@   }
 
@@ -477,7 +478,7 @@ xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 //@   fd &operator= (const fd &) = delete;
 //@   fd &operator= (fd &&) = delete;
 
-//@   ~fd () noexcept (false)
+//@   ~fd (void) noexcept (false)
 //@   {
 //@     if (std::uncaught_exceptions () == _exceptions)
 //@       {
@@ -490,7 +491,7 @@ xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 //@   }
 
 //@   int
-//@   get () const noexcept
+//@   get (void) const noexcept
 //@   {
 //@     return _fd;
 //@   }
@@ -499,7 +500,6 @@ xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 
 //[todo] del dyo
 //[todo] написать пример про strong exc safety после появления fd
-//[todo] use all funcs, check "/""/@", f (void)
 
 //[todo v2]откл boost, потом вкл
 
