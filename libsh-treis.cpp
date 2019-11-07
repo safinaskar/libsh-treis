@@ -446,47 +446,55 @@ xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 //@ #include <unistd.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ struct open2_tag
-//@ {
-//@ };
-
-//@ struct open3_tag_nunu
-//@ {
-//@ };
-
 //@ class fd
 //@ {
 //@   int _fd;
 //@   int _exceptions;
 
-//@ public:
-
-//@   fd (open2_tag, const char *path, int oflag)
+//@   fd (int arg) noexcept : _fd (arg), _exceptions (std::uncaught_exceptions ())
 //@   {
-//@     _fd = ::libsh_treis::libc::no_raii::xopen2 (path, oflag);
-//@     _exceptions = std::uncaught_exceptions ();
 //@   }
 
-//@   fd (open3_tag_nunu, const char *path, int oflag, mode_t mode)
+//@   friend fd
+//@   xopen2 (const char *path, int oflag);
+
+//@   friend fd
+//@   xopen3_nunu (const char *path, int oflag, mode_t mode);
+
+//@ public:
+
+//@   fd (fd &&other) noexcept : _fd (other._fd), _exceptions (std::uncaught_exceptions ())
 //@   {
-//@     _fd = ::libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode);
-//@     _exceptions = std::uncaught_exceptions ();
+//@     other._fd = -1;
 //@   }
 
 //@   fd (const fd &) = delete;
-//@   fd (fd &&) = delete;
-//@   fd &operator= (const fd &) = delete;
-//@   fd &operator= (fd &&) = delete;
 
-//@   ~fd (void) noexcept (false)
+//@   fd &operator= (fd &&other)
 //@   {
-//@     if (std::uncaught_exceptions () == _exceptions)
+//@     if (_fd != -1)
 //@       {
 //@         xclose (_fd);
 //@       }
-//@     else
+
+//@     _fd = other._fd;
+//@     other._fd = -1;
+//@   }
+
+//@   fd &operator= (const fd &) = delete;
+
+//@   ~fd (void) noexcept (false)
+//@   {
+//@     if (_fd != -1)
 //@       {
-//@         close (_fd);
+//@         if (std::uncaught_exceptions () == _exceptions)
+//@           {
+//@             xclose (_fd);
+//@           }
+//@         else
+//@           {
+//@             close (_fd);
+//@           }
 //@       }
 //@   }
 
@@ -497,6 +505,24 @@ xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 //@   }
 //@ };
 //@ }
+
+namespace libsh_treis::libc //@
+{ //@
+fd //@
+xopen2 (const char *path, int oflag)//@;
+{
+  return fd (::libsh_treis::libc::no_raii::xopen2 (path, oflag));
+}
+} //@
+
+namespace libsh_treis::libc //@
+{ //@
+fd //@
+xopen3_nunu (const char *path, int oflag, mode_t mode)//@;
+{
+  return fd (::libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode));
+}
+} //@
 
 //[todo] del dyo
 //[todo] написать пример про strong exc safety после появления fd
