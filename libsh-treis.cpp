@@ -331,7 +331,7 @@ xclose (int fildes)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xvdprintf_nunu (int fildes, const char *format, va_list ap)//@;
+xvdprintf (int fildes, const char *format, va_list ap)//@;
 {
   int result = vdprintf (fildes, format, ap);
 
@@ -349,7 +349,7 @@ xvdprintf_nunu (int fildes, const char *format, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xvfprintf_nunu (FILE *stream, const char *format, va_list ap)//@;
+xvfprintf (FILE *stream, const char *format, va_list ap)//@;
 {
   int result = vfprintf (stream, format, ap);
 
@@ -403,9 +403,9 @@ xvsnprintf_nunu (char *s, size_t n, const char *format, va_list ap)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-xvasprintf_nunu (char **strp, const char *fmt, va_list ap)//@;
+xvasprintf (char **strp, const char *fmt, va_list ap)//@;
 {
-  int result = ::libsh_treis::libc::detail::vasprintf_reexported_nunu (strp, fmt, ap);
+  int result = ::libsh_treis::libc::detail::vasprintf_reexported (strp, fmt, ap);
 
   if (result < 0)
     {
@@ -420,11 +420,11 @@ xvasprintf_nunu (char **strp, const char *fmt, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xdprintf_nunu (int fildes, const char *format, ...)//@;
+xdprintf (int fildes, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = xvdprintf_nunu (fildes, format, ap);
+  int result = xvdprintf (fildes, format, ap);
   va_end (ap);
   return result;
 }
@@ -435,11 +435,11 @@ xdprintf_nunu (int fildes, const char *format, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xfprintf_nunu (FILE *stream, const char *format, ...)//@;
+xfprintf (FILE *stream, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = xvfprintf_nunu (stream, format, ap);
+  int result = xvfprintf (stream, format, ap);
   va_end (ap);
   return result;
 }
@@ -482,7 +482,7 @@ xasprintf_nunu (char **strp, const char *fmt, ...)//@;
 {
   va_list ap;
   va_start (ap, fmt);
-  int result = xvasprintf_nunu (strp, fmt, ap);
+  int result = xvasprintf (strp, fmt, ap);
   va_end (ap);
   return result;
 }
@@ -540,7 +540,7 @@ xpclose (FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xfileno_nunu (FILE *stream)//@;
+xfileno (FILE *stream)//@;
 {
   int result = fileno (stream);
 
@@ -803,11 +803,11 @@ stoi (const std::string_view &s)//@;
 namespace libsh_treis::libc //@
 { //@
 std::string //@
-xvasprintf_nunu (const char *fmt, va_list ap)//@;
+xvasprintf (const char *fmt, va_list ap)//@;
 {
   char *str;
 
-  int length = ::libsh_treis::libc::no_raii::xvasprintf_nunu (&str, fmt, ap);
+  int length = ::libsh_treis::libc::no_raii::xvasprintf (&str, fmt, ap);
 
   std::string result (str, length);
 
@@ -822,11 +822,11 @@ xvasprintf_nunu (const char *fmt, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 std::string //@
-xasprintf_nunu (const char *fmt, ...)//@;
+xasprintf (const char *fmt, ...)//@;
 {
   va_list ap;
   va_start (ap, fmt);
-  std::string result = xvasprintf_nunu (fmt, ap);
+  std::string result = xvasprintf (fmt, ap);
   va_end (ap);
   return result;
 }
