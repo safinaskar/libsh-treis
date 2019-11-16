@@ -1,5 +1,5 @@
 // libsh-treis - собрание C++-библиотек (проект из C++-библиотек) с обёртками над C-библиотеками
-// Одновременно libsh-treis - это главная библиотека в проекте, которая оборачивает libc в Linux (пространство имён libsh-treis::libc)
+// Одновременно libsh-treis - это главная библиотека в проекте, которая оборачивает libc в Linux (пространство имён libsh_treis::libc)
 // Весь проект предназначен только для Linux
 // Цель проекта: бросать исключения в случае ошибок и использовать RAII
 // 2018DECTMP
@@ -26,8 +26,8 @@
 // - Чтобы backtrace работал хорошо, /proc должен быть смонтирован
 
 // Про саму либу
-// - В пространстве libsh-treis::libc::no_raii бросаются исключения в случае ошибок, но есть нарушения RAII
-// - В пространстве libsh-treis::libc (без no_raii) бросаются исключения в случае ошибок и RAII не нарушается
+// - В пространстве libsh_treis::libc::no_raii бросаются исключения в случае ошибок, но есть нарушения RAII
+// - В пространстве libsh_treis::libc (без no_raii) бросаются исключения в случае ошибок и RAII не нарушается
 // - Сигнатура оборачиваемой функции остаётся без изменений, за исключением тривиальных, т. е. если исходная функция при успешном исходе всегда возвращает одно и то же, то нужно возвращать void либо сделать один из out-параметров выходным
 // - Другие причины смены сигнатуры недопустимы. В частности, нельзя менять один не-void тип результата на другой. Например, read и write всегда возращают неотрицательное число в случае успеха, поэтому их тип результата можно было бы заменить с ssize_t на size_t. Но я не буду этого делать, т. к. беззнаковые типы - это плохо (см. "ES.107: Don't use unsigned for subscripts, prefer gsl::index" в C++ Core Guidelines)
 // - Но иногда сменить тип результата всё-таки можно, именно так сделано у xxfgetc
@@ -42,6 +42,16 @@
 // Мелкие замечания
 // - Не обрабатываем особо EINTR у close, т. к. я не знаю, у каких ещё функций так надо делать
 // - Не используемые вещи отмечены nunu (not used not used)
+// - Допустим, вызвали функцию pipe. Создали ребёнка, закрыли в родителе один из концов пайпа. Значит, в нашей обёртке fd должна быть поддержка особого, "пустого", состояния. Значит, нет никаких причин не реализовать move-конструктор, оставляющий исходный объект в этом же "пустом" состоянии (это позволит возвращать fd из функции). Но тогда нужно убедиться, что мы не используем перемещённый объект. Для этого требуем обязательного использования tidy/analize (но сейчас я их не буду использовать). За одно реализуем закрытие одного из концов пайпа как перемещение объекта куда-то, что позволит детектить использование объекта после такого перемещения
+// - В случае ошибок бросаются исключения, и ничего не печатается на экран. Т. к. может быть нужно вызвать какую-нибудь функцию, чтобы проверить, может она выполнить своё действие или нет. И если нет, то сделать что-нибудь другое
+// - Деструкторы могут бросать исключения
+// - Обёртки вокруг библиотечных функций, являющихся strong exception safe, сами являются strong exception safe. Тем не менее, использование этой либы не гарантирует то, что ваш код будет strong exception safe. Например, деструктор libsh_treis::libc::fd закрывает файл. Но если xopen3 создал его, то удалён он не будет! Другой пример: открываем файл для записи, пишем данные, потом пишем ещё данные и закрываем. Если при записи второго блока данных произойдёт ошибка, то первая запись не откатится
+// - Печать backtrace'а временно отключена, чтобы выяснить, нужна ли она. Когда понадобится - включить. А также убирать '\n' при генерации исключения, а не при ловле
+
+// Необёрнутые функции и функции, которые не надо использовать
+// - getc не обёрнуто, т. к. работает так же, как и fgetc
+// - std::stoi, std::stol, std::stoll, atoi, atol, atoll, strtol, strtoll, sscanf игнорируют whitespace перед числом. Поэтому всех их не рекомендуется использовать (в случае sscanf - не рекомендуется использовать для парсинга целых чисел). Вместо этого предлагается использовать libsh_treis::libc::stoi
+// - sprintf не обёрнуто, его не надо использовать
 
 //@ #pragma once
 //@ #include <functional>
@@ -59,6 +69,7 @@
 #include <boost/stacktrace.hpp>
 
 #include "libsh-treis.hpp"
+#include "gnu-source.hpp"
 
 using namespace std::string_literals;
 
@@ -67,7 +78,7 @@ using namespace std::string_literals;
 #define THROW_MESSAGE(m) \
   do \
     { \
-      throw std::runtime_error (__func__ + ": "s + (m) + "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())); \
+      throw std::runtime_error (__func__ + ": "s + (m) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); \
     } \
   while (false)
 
@@ -95,12 +106,17 @@ xstrerror_l (int errnum, locale_t locale)//@;
   do \
     { \
       int saved_errno = errno; \
-      throw std::runtime_error (__func__ + ": "s + xstrerror_l (saved_errno, (locale_t)0) + "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())); \
+      throw std::runtime_error (__func__ + ": "s + xstrerror_l (saved_errno, (locale_t)0) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); \
     } \
   while (false)
 
 namespace libsh_treis //@
 { //@
+
+//@ struct fail_silently
+//@ {
+//@ };
+
 bool //@
 is_successful (const std::function<void(void)> &func) noexcept//@;
 {
@@ -120,6 +136,10 @@ is_successful (const std::function<void(void)> &func) noexcept//@;
           fprintf (stderr, "%s\n", ex.what ());
         }
 
+      return false;
+    }
+  catch (const fail_silently &)
+    {
       return false;
     }
   catch (...)
@@ -183,7 +203,6 @@ xread (int fildes, void *buf, size_t nbyte)//@;
 }
 } //@
 
-// fgetc и getc работают одинаково, поэтому реализуем только xfgetc
 // Сбрасывает err flag перед вызовом getc
 //@ #include <stdio.h>
 namespace libsh_treis::libc //@
@@ -312,6 +331,42 @@ xclose (int fildes)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
+xvdprintf_nunu (int fildes, const char *format, va_list ap)//@;
+{
+  int result = vdprintf (fildes, format, ap);
+
+  if (result < 0)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <stdarg.h>
+//@ #include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xvfprintf_nunu (FILE *stream, const char *format, va_list ap)//@;
+{
+  int result = vfprintf (stream, format, ap);
+
+  if (result < 0)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <stdarg.h>
+#include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
 xvprintf (const char *format, va_list ap)//@;
 {
   int result = vprintf (format, ap);
@@ -321,6 +376,71 @@ xvprintf (const char *format, va_list ap)//@;
       THROW_ERRNO;
     }
 
+  return result;
+}
+} //@
+
+//@ #include <sys/types.h> // size_t, ssize_t
+//@ #include <stdarg.h>
+#include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xvsnprintf_nunu (char *s, size_t n, const char *format, va_list ap)//@;
+{
+  int result = vsnprintf (s, n, format, ap);
+
+  if (result < 0)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <stdarg.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+int //@
+xvasprintf_nunu (char **strp, const char *fmt, va_list ap)//@;
+{
+  int result = ::libsh_treis::libc::detail::vasprintf_reexported_nunu (strp, fmt, ap);
+
+  if (result < 0)
+    {
+      THROW_MESSAGE ("Failed");
+    }
+
+  return result;
+}
+} //@
+
+#include <stdarg.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xdprintf_nunu (int fildes, const char *format, ...)//@;
+{
+  va_list ap;
+  va_start (ap, format);
+  int result = xvdprintf_nunu (fildes, format, ap);
+  va_end (ap);
+  return result;
+}
+} //@
+
+//@ #include <stdio.h>
+#include <stdarg.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xfprintf_nunu (FILE *stream, const char *format, ...)//@;
+{
+  va_list ap;
+  va_start (ap, format);
+  int result = xvfprintf_nunu (stream, format, ap);
+  va_end (ap);
   return result;
 }
 } //@
@@ -335,6 +455,100 @@ xprintf (const char *format, ...)//@;
   va_start (ap, format);
   int result = xvprintf (format, ap);
   va_end (ap);
+  return result;
+}
+} //@
+
+//@ #include <sys/types.h> // size_t, ssize_t
+#include <stdarg.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xsnprintf_nunu (char *s, size_t n, const char *format, ...)//@;
+{
+  va_list ap;
+  va_start (ap, format);
+  int result = xvsnprintf_nunu (s, n, format, ap);
+  va_end (ap);
+  return result;
+}
+} //@
+
+#include <stdarg.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+int //@
+xasprintf_nunu (char **strp, const char *fmt, ...)//@;
+{
+  va_list ap;
+  va_start (ap, fmt);
+  int result = xvasprintf_nunu (strp, fmt, ap);
+  va_end (ap);
+  return result;
+}
+} //@
+
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+xchdir (const char *path)//@;
+{
+  if (chdir (path) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
+// POSIX 2018 сообщает, что popen "may set errno" в случае ошибки. Предполагаем, что popen всегда ставит errno в случае ошибки (так написано в линуксовом мане)
+// #include <stdio.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+FILE * //@
+xpopen (const char *command, const char *mode)//@;
+{
+  FILE *result = popen (command, mode);
+
+  if (result == nullptr)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xpclose (FILE *stream)//@;
+{
+  int result = pclose (stream);
+
+  if (result == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xfileno_nunu (FILE *stream)//@;
+{
+  int result = fileno (stream);
+
+  if (result == -1)
+    {
+      THROW_ERRNO;
+    }
+
   return result;
 }
 } //@
@@ -411,7 +625,7 @@ read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 bool //@
-xread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
+xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
   ssize_t have_read = read_repeatedly (fildes, buf, nbyte);
 
@@ -435,15 +649,32 @@ namespace libsh_treis::libc //@
 void //@
 xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 {
-  if (!xread_repeatedly_nunu (fildes, buf, nbyte))
+  if (!xread_repeatedly (fildes, buf, nbyte))
     {
       THROW_MESSAGE ("EOF");
     }
 }
 } //@
 
+// Если nbyte равно нулю, write не вызывается ни разу
+//@ #include <sys/types.h> // size_t, ssize_t
+namespace libsh_treis::libc //@
+{ //@
+void //@
+write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
+{
+  ssize_t written = 0;
+
+  while (written != (ssize_t)nbyte)
+    {
+      written += xwrite_nunu (fildes, (const char *)buf + written, nbyte - written);
+    }
+}
+} //@
+
 //@ #include <sys/types.h>
 //@ #include <unistd.h>
+//@ #include <assert.h>
 //@ namespace libsh_treis::libc
 //@ {
 //@ class fd
@@ -451,7 +682,7 @@ xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 //@   int _fd;
 //@   int _exceptions;
 
-//@   fd (int arg) noexcept : _fd (arg), _exceptions (std::uncaught_exceptions ())
+//@   explicit fd (int arg) noexcept : _fd (arg), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
@@ -470,6 +701,7 @@ xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 
 //@   fd (const fd &) = delete;
 
+//@   // DR 2468 says we should leave object in valid but unspecified state in case of self-move. And we do this
 //@   fd &operator= (fd &&other)
 //@   {
 //@     if (_fd != -1)
@@ -503,6 +735,7 @@ xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
 //@   int
 //@   get (void) const noexcept
 //@   {
+//@     assert (_fd != -1);
 //@     return _fd;
 //@   }
 //@ };
@@ -526,11 +759,157 @@ xopen3_nunu (const char *path, int oflag, mode_t mode)//@;
 }
 } //@
 
-//[todo] del dyo
-//[todo] написать пример про strong exc safety после появления fd
+// Мне не нравятся функции для парсинга целых чисел в стандартах C и C++, поэтому я пишу свою. А раз уж пишу свою, то в качестве back end'а буду использовать from_chars как самую низкоуровневую и быструю
+//@ #include <string_view>
+#include <charconv>
+#include <system_error>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+stoi (const std::string_view &s)//@;
+{
+  if (s.size () == 0)
+    {
+      THROW_MESSAGE ("Empty string");
+    }
 
-//[todo v2]откл boost, потом вкл
+  if (!(s[0] == '-' || ('0' <= s[0] && s[0] <= '9')))
+    {
+      THROW_MESSAGE ("Doesn't begin with [-0-9]");
+    }
 
+  int result;
 
-//[todo v2]to implement: read, write, getchar, [wish]atoi
-//[todo v5] просто реализовать некую базу, в том числе fwrite
+  auto [ptr, ec] = std::from_chars (s.cbegin (), s.cend (), result);
+
+  if (ec != std::errc ())
+    {
+      THROW_MESSAGE ("Not a valid number (std::from_chars returned error)");
+    }
+
+  if (ptr != s.cend ())
+    {
+      THROW_MESSAGE ("There is a garbagge after number");
+    }
+
+  return result;
+}
+} //@
+
+// Не возвращаем результат [v]asprintf'а, т. к. его можно получить за O(1), вызвав size () у строки. Работает, даже если есть нулевые байты
+//@ #include <stdarg.h>
+//@ #include <string>
+#include <stdlib.h>
+namespace libsh_treis::libc //@
+{ //@
+std::string //@
+xvasprintf_nunu (const char *fmt, va_list ap)//@;
+{
+  char *str;
+
+  int length = ::libsh_treis::libc::no_raii::xvasprintf_nunu (&str, fmt, ap);
+
+  std::string result (str, length);
+
+  free (str);
+
+  return result;
+}
+} //@
+
+//@ #include <string>
+#include <stdarg.h>
+namespace libsh_treis::libc //@
+{ //@
+std::string //@
+xasprintf_nunu (const char *fmt, ...)//@;
+{
+  va_list ap;
+  va_start (ap, fmt);
+  std::string result = xvasprintf_nunu (fmt, ap);
+  va_end (ap);
+  return result;
+}
+} //@
+
+#include <stdlib.h>
+#include <sys/wait.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+process_succeed (int status)//@;
+{
+  if (!WIFEXITED (status))
+    {
+      THROW_MESSAGE ("Process status is not \"exited\"");
+    }
+
+  if (WEXITSTATUS (status) != EXIT_SUCCESS)
+    {
+      THROW_MESSAGE ("Process exit code is not 0");
+    }
+}
+} //@
+
+// Деструктор всегда делает pclose
+//@ #include <stdio.h>
+//@ #include <assert.h>
+//@ namespace libsh_treis::libc
+//@ {
+//@ class pipe_stream
+//@ {
+//@   FILE *_stream;
+//@   int _exceptions;
+
+//@   pipe_stream (const char *command, const char *mode) : _stream (::libsh_treis::libc::no_raii::xpopen (command, mode)), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@   }
+
+//@ public:
+
+//@   pipe_stream (pipe_stream &&other) noexcept : _stream (other._stream), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@     other._stream = nullptr;
+//@   }
+
+//@   pipe_stream (const pipe_stream &) = delete;
+
+//@   // DR 2468 says we should leave object in valid but unspecified state in case of self-move. And we do this
+//@   pipe_stream &operator= (pipe_stream &&other)
+//@   {
+//@     if (_stream != nullptr)
+//@       {
+//@         process_succeed (xpclose (_stream));
+//@       }
+
+//@     _stream = other._stream;
+//@     other._stream = nullptr;
+
+//@     return *this;
+//@   }
+
+//@   pipe_stream &operator= (const pipe_stream &) = delete;
+
+//@   ~pipe_stream (void) noexcept (false)
+//@   {
+//@     if (_stream != nullptr)
+//@       {
+//@         if (std::uncaught_exceptions () == _exceptions)
+//@           {
+//@             process_succeed (xpclose (_stream));
+//@           }
+//@         else
+//@           {
+//@             pclose (_stream);
+//@           }
+//@       }
+//@   }
+
+//@   FILE *
+//@   get (void) const noexcept
+//@   {
+//@     assert (_stream != nullptr);
+//@     return _stream;
+//@   }
+//@ };
+//@ }
