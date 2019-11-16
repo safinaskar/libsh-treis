@@ -172,7 +172,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-xwrite_nunu (int fildes, const void *buf, size_t nbyte)//@;
+xwrite (int fildes, const void *buf, size_t nbyte)//@;
 {
   ssize_t result = write (fildes, buf, nbyte);
 
@@ -667,7 +667,7 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 
   while (written != (ssize_t)nbyte)
     {
-      written += xwrite_nunu (fildes, (const char *)buf + written, nbyte - written);
+      written += xwrite (fildes, (const char *)buf + written, nbyte - written);
     }
 }
 } //@
