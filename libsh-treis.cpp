@@ -861,11 +861,11 @@ process_succeed (int status)//@;
 //@   FILE *_stream;
 //@   int _exceptions;
 
+//@ public:
+
 //@   pipe_stream (const char *command, const char *mode) : _stream (::libsh_treis::libc::no_raii::xpopen (command, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@ public:
 
 //@   pipe_stream (pipe_stream &&other) noexcept : _stream (other._stream), _exceptions (std::uncaught_exceptions ())
 //@   {
