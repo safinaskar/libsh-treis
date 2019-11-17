@@ -42,11 +42,11 @@
 // Мелкие замечания
 // - Не обрабатываем особо EINTR у close, т. к. я не знаю, у каких ещё функций так надо делать
 // - Не используемые вещи отмечены nunu (not used not used)
-// - Допустим, вызвали функцию pipe. Создали ребёнка, закрыли в родителе один из концов пайпа. Значит, в нашей обёртке fd должна быть поддержка особого, "пустого", состояния. Значит, нет никаких причин не реализовать move-конструктор, оставляющий исходный объект в этом же "пустом" состоянии (это позволит возвращать fd из функции). Но тогда нужно убедиться, что мы не используем перемещённый объект. Для этого требуем обязательного использования tidy/analize (но сейчас я их не буду использовать). За одно реализуем закрытие одного из концов пайпа как перемещение объекта куда-то, что позволит детектить использование объекта после такого перемещения
 // - В случае ошибок бросаются исключения, и ничего не печатается на экран. Т. к. может быть нужно вызвать какую-нибудь функцию, чтобы проверить, может она выполнить своё действие или нет. И если нет, то сделать что-нибудь другое
 // - Деструкторы могут бросать исключения
 // - Обёртки вокруг библиотечных функций, являющихся strong exception safe, сами являются strong exception safe. Тем не менее, использование этой либы не гарантирует то, что ваш код будет strong exception safe. Например, деструктор libsh_treis::libc::fd закрывает файл. Но если xopen3 создал его, то удалён он не будет! Другой пример: открываем файл для записи, пишем данные, потом пишем ещё данные и закрываем. Если при записи второго блока данных произойдёт ошибка, то первая запись не откатится
 // - Печать backtrace'а временно отключена, чтобы выяснить, нужна ли она. Когда понадобится - включить. А также убирать '\n' при генерации исключения, а не при ловле
+// - RAII-обёртки вокруг файловых дескрипторов и тому подобного не должны иметь особого состояния. Если разрешить особое состояние, то выловить попытку использования обёртки в особом состоянии можно будет только с помощью статических анализаторов или в runtime'е, что меня не устраивает. Поэтому особого состояния у обёрток не будет. Если нужно перемещать обёртки, возвращать из функций или деструктуировать их до конца scope'а, нужно использовать std::unique_ptr. Функция, создающая пайп, будет возвращать два unique_ptr'а
 
 // Необёрнутые функции и функции, которые не надо использовать
 // - getc не обёрнуто, т. к. работает так же, как и fgetc
@@ -674,90 +674,53 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 
 //@ #include <sys/types.h>
 //@ #include <unistd.h>
-//@ #include <assert.h>
 //@ namespace libsh_treis::libc
 //@ {
+//@ struct xopen2_tag
+//@ {
+//@ };
+//@ struct xopen3_tag_nunu
+//@ {
+//@ };
 //@ class fd
 //@ {
 //@   int _fd;
 //@   int _exceptions;
 
-//@   explicit fd (int arg) noexcept : _fd (arg), _exceptions (std::uncaught_exceptions ())
-//@   {
-//@   }
-
-//@   friend fd
-//@   xopen2 (const char *path, int oflag);
-
-//@   friend fd
-//@   xopen3_nunu (const char *path, int oflag, mode_t mode);
-
 //@ public:
 
-//@   fd (fd &&other) noexcept : _fd (other._fd), _exceptions (std::uncaught_exceptions ())
+//@   fd (xopen2_tag, const char *path, int oflag) : _fd (::libsh_treis::libc::no_raii::xopen2 (path, oflag)), _exceptions (std::uncaught_exceptions ())
 //@   {
-//@     other._fd = -1;
 //@   }
 
+//@   fd (xopen3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (::libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@   }
+
+//@   fd (fd &&other) = delete;
 //@   fd (const fd &) = delete;
-
-//@   // DR 2468 says we should leave object in valid but unspecified state in case of self-move. And we do this
-//@   fd &operator= (fd &&other)
-//@   {
-//@     if (_fd != -1)
-//@       {
-//@         xclose (_fd);
-//@       }
-
-//@     _fd = other._fd;
-//@     other._fd = -1;
-
-//@     return *this;
-//@   }
-
+//@   fd &operator= (fd &&other) = delete;
 //@   fd &operator= (const fd &) = delete;
 
 //@   ~fd (void) noexcept (false)
 //@   {
-//@     if (_fd != -1)
+//@     if (std::uncaught_exceptions () == _exceptions)
 //@       {
-//@         if (std::uncaught_exceptions () == _exceptions)
-//@           {
-//@             xclose (_fd);
-//@           }
-//@         else
-//@           {
-//@             close (_fd);
-//@           }
+//@         xclose (_fd);
+//@       }
+//@     else
+//@       {
+//@         close (_fd);
 //@       }
 //@   }
 
 //@   int
 //@   get (void) const noexcept
 //@   {
-//@     assert (_fd != -1);
 //@     return _fd;
 //@   }
 //@ };
 //@ }
-
-namespace libsh_treis::libc //@
-{ //@
-fd //@
-xopen2 (const char *path, int oflag)//@;
-{
-  return fd (::libsh_treis::libc::no_raii::xopen2 (path, oflag));
-}
-} //@
-
-namespace libsh_treis::libc //@
-{ //@
-fd //@
-xopen3_nunu (const char *path, int oflag, mode_t mode)//@;
-{
-  return fd (::libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode));
-}
-} //@
 
 // Мне не нравятся функции для парсинга целых чисел в стандартах C и C++, поэтому я пишу свою. А раз уж пишу свою, то в качестве back end'а буду использовать from_chars как самую низкоуровневую и быструю
 //@ #include <string_view>
@@ -853,7 +816,6 @@ process_succeed (int status)//@;
 
 // Деструктор всегда делает pclose
 //@ #include <stdio.h>
-//@ #include <assert.h>
 //@ namespace libsh_treis::libc
 //@ {
 //@ class pipe_stream
@@ -867,48 +829,26 @@ process_succeed (int status)//@;
 //@   {
 //@   }
 
-//@   pipe_stream (pipe_stream &&other) noexcept : _stream (other._stream), _exceptions (std::uncaught_exceptions ())
-//@   {
-//@     other._stream = nullptr;
-//@   }
-
+//@   pipe_stream (pipe_stream &&other) = delete;
 //@   pipe_stream (const pipe_stream &) = delete;
-
-//@   // DR 2468 says we should leave object in valid but unspecified state in case of self-move. And we do this
-//@   pipe_stream &operator= (pipe_stream &&other)
-//@   {
-//@     if (_stream != nullptr)
-//@       {
-//@         process_succeed (xpclose (_stream));
-//@       }
-
-//@     _stream = other._stream;
-//@     other._stream = nullptr;
-
-//@     return *this;
-//@   }
-
+//@   pipe_stream &operator= (pipe_stream &&other) = delete;
 //@   pipe_stream &operator= (const pipe_stream &) = delete;
 
 //@   ~pipe_stream (void) noexcept (false)
 //@   {
-//@     if (_stream != nullptr)
+//@     if (std::uncaught_exceptions () == _exceptions)
 //@       {
-//@         if (std::uncaught_exceptions () == _exceptions)
-//@           {
-//@             process_succeed (xpclose (_stream));
-//@           }
-//@         else
-//@           {
-//@             pclose (_stream);
-//@           }
+//@         process_succeed (xpclose (_stream));
+//@       }
+//@     else
+//@       {
+//@         pclose (_stream);
 //@       }
 //@   }
 
 //@   FILE *
 //@   get (void) const noexcept
 //@   {
-//@     assert (_stream != nullptr);
 //@     return _stream;
 //@   }
 //@ };
