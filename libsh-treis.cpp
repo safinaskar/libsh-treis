@@ -5,7 +5,7 @@
 // 2018DECTMP
 
 // Сборка этой либы
-// - Написан на C++17, проекты на этой либе тоже должны использовать как минимум C++17
+// - Написан на C++20, используется только одна фича из C++20: designated initializers, проекты на этой либе должны использовать как минимум C++17
 // - Зависит от boost stacktrace. Причём от той версии, где поддерживается BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE и где есть boost::stacktrace::to_string (const boost::stacktrace::stacktrace &). В частности, 1.71 поддерживается, а 1.67 - нет
 // - Желательно указать переменную сборки к make BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE для включения более информативного backtrace'а
 
@@ -28,7 +28,7 @@
 // Про саму либу
 // - В пространстве libsh_treis::libc::no_raii бросаются исключения в случае ошибок, но есть нарушения RAII
 // - В пространстве libsh_treis::libc (без no_raii) бросаются исключения в случае ошибок и RAII не нарушается
-// - Сигнатура оборачиваемой функции остаётся без изменений, за исключением тривиальных, т. е. если исходная функция при успешном исходе всегда возвращает одно и то же, то нужно возвращать void либо сделать один из out-параметров выходным
+// - Сигнатура оборачиваемой функции остаётся без изменений, за исключением тривиальных, т. е. если исходная функция при успешном исходе всегда возвращает одно и то же (либо результат можно вывести из аргументов), то нужно возвращать void либо сделать один из out-параметров выходным
 // - Другие причины смены сигнатуры недопустимы. В частности, нельзя менять один не-void тип результата на другой. Например, read и write всегда возращают неотрицательное число в случае успеха, поэтому их тип результата можно было бы заменить с ssize_t на size_t. Но я не буду этого делать, т. к. беззнаковые типы - это плохо (см. "ES.107: Don't use unsigned for subscripts, prefer gsl::index" в C++ Core Guidelines)
 // - Но иногда сменить тип результата всё-таки можно, именно так сделано у xxfgetc
 // - Убираем <stdarg.h> там, где это возможно. См., например, xopen2 и xopen3
@@ -52,6 +52,7 @@
 // - getc не обёрнуто, т. к. работает так же, как и fgetc
 // - std::stoi, std::stol, std::stoll, atoi, atol, atoll, strtol, strtoll, sscanf игнорируют whitespace перед числом. Поэтому всех их не рекомендуется использовать (в случае sscanf - не рекомендуется использовать для парсинга целых чисел). Вместо этого предлагается использовать libsh_treis::libc::stoi
 // - sprintf не обёрнуто, его не надо использовать
+// - У нас не будет stdarg-вариантов exec*, т. к. внутри их всё равно придётся реализовать через контейнер. Поэтому будет сразу вариант exec*, который принимает begin и end
 
 //@ #pragma once
 //@ #include <functional>
@@ -405,7 +406,7 @@ namespace libsh_treis::libc::no_raii //@
 int //@
 xvasprintf (char **strp, const char *fmt, va_list ap)//@;
 {
-  int result = ::libsh_treis::libc::detail::vasprintf_reexported (strp, fmt, ap);
+  int result = libsh_treis::libc::detail::vasprintf_reexported (strp, fmt, ap);
 
   if (result < 0)
     {
@@ -464,7 +465,7 @@ xprintf (const char *format, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xsnprintf_nunu (char *s, size_t n, const char *format, ...)//@;
+xsnprintf (char *s, size_t n, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
@@ -550,6 +551,104 @@ xfileno (FILE *stream)//@;
     }
 
   return result;
+}
+} //@
+
+#include <unistd.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+//@ struct pipe_result
+//@ {
+//@   int readable;
+//@   int writable;
+//@ };
+
+pipe_result //@
+xpipe (void)//@;
+{
+  int result[2];
+
+  if (pipe (result) == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return { .readable = result[0], .writable = result[1] };
+}
+} //@
+
+//@ #include <sys/types.h>
+#include <unistd.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+pid_t //@
+xfork (void)//@;
+{
+  pid_t result = fork ();
+
+  if (result == (pid_t)-1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <sys/types.h>
+#include <sys/wait.h>
+namespace libsh_treis::libc //@
+{ //@
+pid_t //@
+xwaitpid (pid_t pid, int *stat_loc, int options)//@;
+{
+  pid_t result = waitpid (pid, stat_loc, options);
+
+  if (result == (pid_t)-1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+// Функция обычно используется, чтобы скопировать fd на 0, 1 или 2. Эти fd не имеет смысла оборачивать в RAII-обёртки. Поэтому не-RAII версию xdup2 помещаем в namespace libsh_treis::libc
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+xdup2 (int fildes, int fildes2)//@;
+{
+  if (dup2 (fildes, fildes2) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
+// За одно фиксим проблему с прототипом функций exec*
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+[[noreturn]] void //@
+xexecv_nunu (const char *path, const char *const argv[])//@;
+{
+  execv (path, (char *const *)argv);
+
+  THROW_ERRNO;
+}
+} //@
+
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+[[noreturn]] void //@
+xexecvp (const char *file, const char *const argv[])//@;
+{
+  execvp (file, (char *const *)argv);
+
+  THROW_ERRNO;
 }
 } //@
 
@@ -647,7 +746,7 @@ xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-xxread_repeatedly_nunu (int fildes, void *buf, size_t nbyte)//@;
+xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
   if (!xread_repeatedly (fildes, buf, nbyte))
     {
@@ -682,24 +781,31 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@ struct xopen3_tag_nunu
 //@ {
 //@ };
+//@ struct pipe_result;
 //@ class fd
 //@ {
 //@   int _fd;
 //@   int _exceptions;
 
+//@   explicit fd (int f) noexcept : _fd (f), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@   }
+
+//@   friend pipe_result xpipe (void);
+
 //@ public:
 
-//@   fd (xopen2_tag, const char *path, int oflag) : _fd (::libsh_treis::libc::no_raii::xopen2 (path, oflag)), _exceptions (std::uncaught_exceptions ())
+//@   fd (xopen2_tag, const char *path, int oflag) : _fd (libsh_treis::libc::no_raii::xopen2 (path, oflag)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
-//@   fd (xopen3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (::libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
+//@   fd (xopen3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
-//@   fd (fd &&other) = delete;
+//@   fd (fd &&) = delete;
 //@   fd (const fd &) = delete;
-//@   fd &operator= (fd &&other) = delete;
+//@   fd &operator= (fd &&) = delete;
 //@   fd &operator= (const fd &) = delete;
 
 //@   ~fd (void) noexcept (false)
@@ -770,7 +876,7 @@ xvasprintf (const char *fmt, va_list ap)//@;
 {
   char *str;
 
-  int length = ::libsh_treis::libc::no_raii::xvasprintf (&str, fmt, ap);
+  int length = libsh_treis::libc::no_raii::xvasprintf (&str, fmt, ap);
 
   std::string result (str, length);
 
@@ -825,13 +931,13 @@ process_succeed (int status)//@;
 
 //@ public:
 
-//@   pipe_stream (const char *command, const char *mode) : _stream (::libsh_treis::libc::no_raii::xpopen (command, mode)), _exceptions (std::uncaught_exceptions ())
+//@   pipe_stream (const char *command, const char *mode) : _stream (libsh_treis::libc::no_raii::xpopen (command, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
-//@   pipe_stream (pipe_stream &&other) = delete;
+//@   pipe_stream (pipe_stream &&) = delete;
 //@   pipe_stream (const pipe_stream &) = delete;
-//@   pipe_stream &operator= (pipe_stream &&other) = delete;
+//@   pipe_stream &operator= (pipe_stream &&) = delete;
 //@   pipe_stream &operator= (const pipe_stream &) = delete;
 
 //@   ~pipe_stream (void) noexcept (false)
@@ -852,4 +958,146 @@ process_succeed (int status)//@;
 //@     return _stream;
 //@   }
 //@ };
+//@ }
+
+// Эта функция не является exception-safe
+//@ #include <memory>
+namespace libsh_treis::libc //@
+{ //@
+//@ struct pipe_result
+//@ {
+//@   std::unique_ptr<fd> readable;
+//@   std::unique_ptr<fd> writable;
+//@ };
+pipe_result //@
+xpipe (void)//@;
+{
+  auto result = libsh_treis::libc::no_raii::xpipe ();
+
+  return { .readable = std::unique_ptr<fd> (new fd (result.readable)), .writable = std::unique_ptr<fd> (new fd (result.writable)) };
+}
+} //@
+
+//@ #include <sys/types.h>
+#include <stdlib.h>
+// Вызывающая сторона должна сама flush'нуть C stdio и C++ streams перед вызовом этой функции. В том числе flush'нуть C stderr, т. к. он используется моей либой (если туда был вывод без '\n' в конце)
+namespace libsh_treis::libc::no_raii //@
+{ //@
+pid_t //@
+safe_fork (const std::function<void(void)> &func)//@;
+{
+  pid_t result = libsh_treis::libc::no_raii::xfork ();
+
+  if (result == 0)
+    {
+      _Exit (libsh_treis::main_helper (func));
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <sys/types.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xwaitpid_status (pid_t pid, int options)//@;
+{
+  int result;
+
+  xwaitpid (pid, &result, options);
+
+  return result;
+}
+} //@
+
+// Деструктор всегда делает waitpid
+//@ #include <sys/types.h>
+//@ #include <sys/wait.h>
+//@ namespace libsh_treis::libc
+//@ {
+//@ class process
+//@ {
+//@   pid_t _pid;
+//@   int _exceptions;
+
+//@ public:
+
+//@   explicit process (const std::function<void(void)> &func) : _pid (libsh_treis::libc::no_raii::safe_fork (func)), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@   }
+
+//@   process (process &&) = delete;
+//@   process (const process &) = delete;
+//@   process &operator= (process &&) = delete;
+//@   process &operator= (const process &) = delete;
+
+//@   ~process (void) noexcept (false)
+//@   {
+//@     if (std::uncaught_exceptions () == _exceptions)
+//@       {
+//@         process_succeed (xwaitpid_status (_pid, 0));
+//@       }
+//@     else
+//@       {
+//@         waitpid (_pid, nullptr, 0);
+//@       }
+//@   }
+
+//@   pid_t
+//@   get (void) const noexcept
+//@   {
+//@     return _pid;
+//@   }
+//@ };
+//@ }
+
+//@ #include <memory>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
+{
+  process *ptr = proc.release ();
+
+  int result = xwaitpid_status (ptr->get (), options);
+
+  operator delete (ptr);
+
+  return result;
+}
+} //@
+
+// xexecv_string и xexecvp_string - для range'а объектов, у которых есть c_str ()
+
+//@ #include <vector>
+//@ namespace libsh_treis::libc
+//@ {
+//@ template <typename Iter> [[noreturn]] void
+//@ xexecv_string_nunu (const char *path, Iter b, Iter e)
+//@ {
+//@   std::vector<const char *> v;
+//@   for (; b != e; ++b)
+//@     {
+//@       v.push_back (b->c_str ());
+//@     }
+//@   v.push_back (nullptr);
+//@   xexecv_nunu (path, v.data ());
+//@ }
+//@ }
+
+//@ #include <vector>
+//@ namespace libsh_treis::libc
+//@ {
+//@ template <typename Iter> [[noreturn]] void
+//@ xexecvp_string (const char *file, Iter b, Iter e)
+//@ {
+//@   std::vector<const char *> v;
+//@   for (; b != e; ++b)
+//@     {
+//@       v.push_back (b->c_str ());
+//@     }
+//@   v.push_back (nullptr);
+//@   xexecvp (file, v.data ());
+//@ }
 //@ }
