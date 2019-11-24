@@ -1053,11 +1053,14 @@ xwaitpid_status (pid_t pid, int options)//@;
 //@ }
 
 //@ #include <memory>
+#include <assert.h>
 namespace libsh_treis::libc //@
 { //@
 int //@
 xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 {
+  assert (proc != nullptr);
+
   process *ptr = proc.release ();
 
   int result = xwaitpid_status (ptr->get (), options);
