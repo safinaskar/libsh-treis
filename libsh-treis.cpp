@@ -50,7 +50,7 @@
 
 // Необёрнутые функции и функции, которые не надо использовать
 // - getc не обёрнуто, т. к. работает так же, как и fgetc
-// - std::stoi, std::stol, std::stoll, atoi, atol, atoll, strtol, strtoll, sscanf игнорируют whitespace перед числом. Поэтому всех их не рекомендуется использовать (в случае sscanf - не рекомендуется использовать для парсинга целых чисел). Вместо этого предлагается использовать libsh_treis::libc::stoi
+// - std::stoi, std::stol, std::stoll, atoi, atol, atoll, strtol, strtoll, sscanf игнорируют whitespace перед числом. Поэтому всех их не рекомендуется использовать (в случае sscanf - не рекомендуется использовать для парсинга целых чисел). Вместо этого предлагается использовать libsh_treis::libc::sto
 // - sprintf не обёрнуто, его не надо использовать
 // - У нас не будет stdarg-вариантов exec*, т. к. внутри их всё равно придётся реализовать через контейнер. Поэтому будет сразу вариант exec*, который принимает begin и end
 
@@ -834,8 +834,8 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 #include <system_error>
 namespace libsh_treis::libc //@
 { //@
-int //@
-stoi (const std::string_view &s)//@;
+template <typename T> T //@
+sto (const std::string_view &s)//@;
 {
   if (s.size () == 0)
     {
@@ -847,7 +847,7 @@ stoi (const std::string_view &s)//@;
       THROW_MESSAGE ("Doesn't begin with [-0-9]");
     }
 
-  int result;
+  T result;
 
   auto [ptr, ec] = std::from_chars (s.cbegin (), s.cend (), result);
 
