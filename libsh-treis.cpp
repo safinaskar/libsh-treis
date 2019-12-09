@@ -830,40 +830,40 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 
 // Мне не нравятся функции для парсинга целых чисел в стандартах C и C++, поэтому я пишу свою. А раз уж пишу свою, то в качестве back end'а буду использовать from_chars как самую низкоуровневую и быструю
 //@ #include <string_view>
-#include <charconv>
-#include <system_error>
-namespace libsh_treis::libc //@
-{ //@
-template <typename T> T //@
-sto (const std::string_view &s)//@;
-{
-  if (s.size () == 0)
-    {
-      THROW_MESSAGE ("Empty string");
-    }
+//@ #include <charconv>
+//@ #include <system_error>
+//@ namespace libsh_treis::libc
+//@ {
+//@ template <typename T> T
+//@ sto (const std::string_view &s)
+//@ {
+//@   if (s.size () == 0)
+//@     {
+//@       THROW_MESSAGE ("Empty string");
+//@     }
 
-  if (!(s[0] == '-' || ('0' <= s[0] && s[0] <= '9')))
-    {
-      THROW_MESSAGE ("Doesn't begin with [-0-9]");
-    }
+//@   if (!(s[0] == '-' || ('0' <= s[0] && s[0] <= '9')))
+//@     {
+//@       THROW_MESSAGE ("Doesn't begin with [-0-9]");
+//@     }
 
-  T result;
+//@   T result;
 
-  auto [ptr, ec] = std::from_chars (s.cbegin (), s.cend (), result);
+//@   auto [ptr, ec] = std::from_chars (s.cbegin (), s.cend (), result);
 
-  if (ec != std::errc ())
-    {
-      THROW_MESSAGE ("Not a valid number (std::from_chars returned error)");
-    }
+//@   if (ec != std::errc ())
+//@     {
+//@       THROW_MESSAGE ("Not a valid number (std::from_chars returned error)");
+//@     }
 
-  if (ptr != s.cend ())
-    {
-      THROW_MESSAGE ("There is a garbagge after number");
-    }
+//@   if (ptr != s.cend ())
+//@     {
+//@       THROW_MESSAGE ("There is a garbagge after number");
+//@     }
 
-  return result;
-}
-} //@
+//@   return result;
+//@ }
+//@ }
 
 // Не возвращаем результат [v]asprintf'а, т. к. его можно получить за O(1), вызвав size () у строки. Работает, даже если есть нулевые байты
 //@ #include <stdarg.h>
