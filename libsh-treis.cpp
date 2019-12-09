@@ -37,7 +37,7 @@
 // - Семантика функций из C headers и соответствующих C++ headers может различаться очень существенно. Например, std::exit из <cstdlib> гарантирует вызов деструкторов для глобальных объектов, а exit из <stdlib.h> - нет. Тем не менее, реализация в Linux хорошая, т. е. std::exit из <cstdlib> просто ссылается на exit из <stdlib.h>. То же для функций из <string.h> и <cstring>. Поэтому всегда используем .h-файлы. Так проще, не надо различать хедеры из стандарта C++ и Linux-специфичные
 // - .hpp инклудит только то, что нужно, чтобы сам .hpp работал. .cpp инклудит то, что нужно для реализации. Потом, когда-нибудь, наверное, нужно будет ещё и инклудить то, что нужно для правильного использования, скажем, чтобы было O_CREAT к open (но конкретно в случае open хедеры для O_RDONLY и тому подобных есть)
 // - В реализациях функций можно использовать только хедеры, указанные в начале этого файла и указанные непосредственно перед функцией
-// - В std::runtime_error и THROW_MESSAGE (в коде либы и в user code) пишите сообщения с большой буквы для совместимости с тем, что выдаёт strerror
+// - В std::runtime_error и _LIBSH_TREIS_THROW_MESSAGE (в коде либы и в user code) пишите сообщения с большой буквы для совместимости с тем, что выдаёт strerror
 
 // Мелкие замечания
 // - Не обрабатываем особо EINTR у close, т. к. я не знаю, у каких ещё функций так надо делать
@@ -57,15 +57,14 @@
 //@ #pragma once
 //@ #include <functional>
 //@ #include <exception>
+//@ #include <stdexcept>
+//@ #include <string>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <locale.h>
-
-#include <stdexcept>
-#include <string>
 
 #include <boost/stacktrace.hpp>
 
@@ -76,12 +75,8 @@ using namespace std::string_literals;
 
 // Вводная часть
 
-#define THROW_MESSAGE(m) \
-  do \
-    { \
-      throw std::runtime_error (__func__ + ": "s + (m) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); \
-    } \
-  while (false)
+// Используется в функциях, которые реализованны в хедере
+//@ #define _LIBSH_TREIS_THROW_MESSAGE(m) do { throw std::runtime_error (__func__ + std::string (": ") + (m) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); } while (false)
 
 //@ #include <locale.h>
 #include <string.h>
@@ -95,7 +90,7 @@ xstrerror_l (int errnum, locale_t locale)//@;
   // Не вызываем здесь xstrerror_l, чтобы не было рекурсии
   if (result == nullptr)
     {
-      THROW_MESSAGE ("Failed");
+      _LIBSH_TREIS_THROW_MESSAGE ("Failed");
     }
 
   return result;
@@ -410,7 +405,7 @@ xvasprintf (char **strp, const char *fmt, va_list ap)//@;
 
   if (result < 0)
     {
-      THROW_MESSAGE ("Failed");
+      _LIBSH_TREIS_THROW_MESSAGE ("Failed");
     }
 
   return result;
@@ -665,7 +660,7 @@ xxfgetc_nunu (FILE *stream)//@;
 
   if (result == EOF)
     {
-      THROW_MESSAGE ("EOF");
+      _LIBSH_TREIS_THROW_MESSAGE ("EOF");
     }
 
   return (char)(unsigned char)result;
@@ -683,7 +678,7 @@ xxgetchar_nunu (void)//@;
 
   if (result == EOF)
     {
-      THROW_MESSAGE ("EOF");
+      _LIBSH_TREIS_THROW_MESSAGE ("EOF");
     }
 
   return (char)(unsigned char)result;
@@ -738,7 +733,7 @@ xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
       return false;
     }
 
-  THROW_MESSAGE ("Partial data");
+  _LIBSH_TREIS_THROW_MESSAGE ("Partial data");
 }
 } //@
 
@@ -750,7 +745,7 @@ xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
   if (!xread_repeatedly (fildes, buf, nbyte))
     {
-      THROW_MESSAGE ("EOF");
+      _LIBSH_TREIS_THROW_MESSAGE ("EOF");
     }
 }
 } //@
@@ -839,12 +834,12 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@ {
 //@   if (s.size () == 0)
 //@     {
-//@       THROW_MESSAGE ("Empty string");
+//@       _LIBSH_TREIS_THROW_MESSAGE ("Empty string");
 //@     }
 
 //@   if (!(s[0] == '-' || ('0' <= s[0] && s[0] <= '9')))
 //@     {
-//@       THROW_MESSAGE ("Doesn't begin with [-0-9]");
+//@       _LIBSH_TREIS_THROW_MESSAGE ("Doesn't begin with [-0-9]");
 //@     }
 
 //@   T result;
@@ -853,12 +848,12 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 
 //@   if (ec != std::errc ())
 //@     {
-//@       THROW_MESSAGE ("Not a valid number (std::from_chars returned error)");
+//@       _LIBSH_TREIS_THROW_MESSAGE ("Not a valid number (std::from_chars returned error)");
 //@     }
 
 //@   if (ptr != s.cend ())
 //@     {
-//@       THROW_MESSAGE ("There is a garbagge after number");
+//@       _LIBSH_TREIS_THROW_MESSAGE ("There is a garbagge after number");
 //@     }
 
 //@   return result;
@@ -910,12 +905,12 @@ process_succeed (int status)//@;
 {
   if (!WIFEXITED (status))
     {
-      THROW_MESSAGE ("Process status is not \"exited\"");
+      _LIBSH_TREIS_THROW_MESSAGE ("Process status is not \"exited\"");
     }
 
   if (WEXITSTATUS (status) != EXIT_SUCCESS)
     {
-      THROW_MESSAGE ("Process exit code is not 0");
+      _LIBSH_TREIS_THROW_MESSAGE ("Process exit code is not 0");
     }
 }
 } //@
