@@ -123,13 +123,14 @@ is_successful (const std::function<void(void)> &func) noexcept//@;
     }
   catch (const std::exception &ex)
     {
+      // Слово "Error" обязательно, иначе вывод не выглядит как сообщение об ошибке
       if (ex.what ()[strlen (ex.what ()) - 1] == '\n')
         {
-          fprintf (stderr, "%s", ex.what ());
+          fprintf (stderr, "Error: %s", ex.what ());
         }
       else
         {
-          fprintf (stderr, "%s\n", ex.what ());
+          fprintf (stderr, "Error: %s\n", ex.what ());
         }
 
       return false;
