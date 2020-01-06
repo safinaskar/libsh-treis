@@ -5,7 +5,7 @@
 // 2018DECTMP
 
 // Сборка этой либы
-// - Написан на C++20, используется только одна фича из C++20: designated initializers, проекты на этой либе должны использовать как минимум C++17
+// - Написан на C++20, используются только две фичи из C++20: designated initializers и std::is_unbounded_array_v, проекты на этой либе должны использовать как минимум C++20
 // - Зависит от boost stacktrace. Причём от той версии, где поддерживается BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE и где есть boost::stacktrace::to_string (const boost::stacktrace::stacktrace &). В частности, 1.71 поддерживается, а 1.67 - нет
 // - Желательно указать переменную сборки к make BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE для включения более информативного backtrace'а
 
@@ -1109,5 +1109,19 @@ xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@     }
 //@   v.push_back (nullptr);
 //@   xexecvp (file, v.data ());
+//@ }
+//@ }
+
+//@ // Выделяет память для массива, инициализируя с помощью default initializing. Независимо от того, что написано в стандарте. Добавил, т. к. не нашёл подобной функции в моей реализации библиотеки, когда будет везде, надо будет удалить
+//@ #include <cstddef>
+//@ #include <memory>
+//@ #include <type_traits>
+//@ namespace libsh_treis::cxx
+//@ {
+//@ template <typename T> std::unique_ptr<T>
+//@ make_unique_default_init (std::size_t size)
+//@ {
+//@   static_assert (std::is_unbounded_array_v<T>);
+//@   return new std::remove_extent_t<T>[size];
 //@ }
 //@ }
