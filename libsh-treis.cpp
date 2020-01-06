@@ -131,21 +131,21 @@ is_successful (const std::function<void(void)> &func) noexcept//@;
     }
   catch (const std::exception &ex)
     {
-      // Слово "Error" обязательно, иначе вывод не выглядит как сообщение об ошибке
+      // Имя программы обязательно, иначе нельзя понять, какая именно из программ в пайпе свалилась
       if (ex.what ()[strlen (ex.what ()) - 1] == '\n')
         {
-          fprintf (stderr, "Error: %s", ex.what ());
+          fprintf (stderr, "%s: %s", libsh_treis::detail::program_invocation_name_reexported (), ex.what ());
         }
       else
         {
-          fprintf (stderr, "Error: %s\n", ex.what ());
+          fprintf (stderr, "%s: %s\n", libsh_treis::detail::program_invocation_name_reexported (), ex.what ());
         }
 
       return false;
     }
   catch (...)
     {
-      fprintf (stderr, "Unknown error\n");
+      fprintf (stderr, "%s: unknown exception\n", libsh_treis::detail::program_invocation_name_reexported ());
       return false;
     }
 
