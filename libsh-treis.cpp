@@ -1122,6 +1122,6 @@ xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ make_unique_default_init (std::size_t size)
 //@ {
 //@   static_assert (std::is_unbounded_array_v<T>);
-//@   return new std::remove_extent_t<T>[size];
+//@   return std::unique_ptr<T> (new std::remove_extent_t<T>[size]);
 //@ }
 //@ }
