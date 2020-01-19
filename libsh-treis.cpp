@@ -30,10 +30,10 @@
 // - В пространстве libsh_treis::libc (без no_raii) бросаются исключения в случае ошибок и RAII не нарушается
 // - Сигнатура оборачиваемой функции остаётся без изменений, за исключением тривиальных, т. е. если исходная функция при успешном исходе всегда возвращает одно и то же (либо результат можно вывести из аргументов), то нужно возвращать void либо сделать один из out-параметров выходным
 // - Другие причины смены сигнатуры недопустимы. В частности, нельзя менять один не-void тип результата на другой. Например, read и write всегда возращают неотрицательное число в случае успеха, поэтому их тип результата можно было бы заменить с ssize_t на size_t. Но я не буду этого делать, т. к. беззнаковые типы - это плохо (см. "ES.107: Don't use unsigned for subscripts, prefer gsl::index" в C++ Core Guidelines)
-// - Но иногда сменить тип результата всё-таки можно, именно так сделано у xxfgetc
-// - Убираем <stdarg.h> там, где это возможно. См., например, xopen2 и xopen3
+// - Но иногда сменить тип результата всё-таки можно, именно так сделано у xx_fgetc
+// - Убираем <stdarg.h> там, где это возможно. См., например, x_open2 и x_open3
 // - Мы понимаем ошибку в максимально прямом и естественном смысле, без фантазирования. Мы не называем ошибкой то, что ей не является. Например, если getchar вернул EOF из-за конца файла, то это не ошибка (это следует из здравого смысла). В то же время в некоторых случаях мы упрощаем себе задачу. Например, большинство системных вызовов Linux (а точнее, их обёрток из libc) возвращают -1 в случае ошибки. Такие ошибки мы и вправду считаем ошибками, чтобы упростить себе задачу, в том числе считаем ошибками всякие там EAGAIN, EINTR, EINPROGRESS, EWOULDBLOCK и тому подобные
-// - Если кроме естественных ошибок хочется бросать исключения при дополнительных, заводим xx-функцию. Например, xxgetchar бросает исключение при EOF
+// - Если кроме естественных ошибок хочется бросать исключения при дополнительных, заводим xx-функцию. Например, xx_getchar бросает исключение при EOF
 // - Семантика функций из C headers и соответствующих C++ headers может различаться очень существенно. Например, std::exit из <cstdlib> гарантирует вызов деструкторов для глобальных объектов, а exit из <stdlib.h> - нет. Тем не менее, реализация в Linux хорошая, т. е. std::exit из <cstdlib> просто ссылается на exit из <stdlib.h>. То же для функций из <string.h> и <cstring>. Поэтому всегда используем .h-файлы. Так проще, не надо различать хедеры из стандарта C++ и Linux-специфичные
 // - .hpp инклудит только то, что нужно, чтобы сам .hpp работал. .cpp инклудит то, что нужно для реализации. Потом, когда-нибудь, наверное, нужно будет ещё и инклудить то, что нужно для правильного использования, скажем, чтобы было O_CREAT к open (но конкретно в случае open хедеры для O_RDONLY и тому подобных есть)
 // - В реализациях функций можно использовать только хедеры, указанные в начале этого файла и указанные непосредственно перед функцией
@@ -44,10 +44,11 @@
 // - Не используемые вещи отмечены nunu (not used not used). Если я использовал интерфейс где-то, а потом перестал, nunu не ставится
 // - В случае ошибок бросаются исключения, и ничего не печатается на экран. Т. к. может быть нужно вызвать какую-нибудь функцию, чтобы проверить, может она выполнить своё действие или нет. И если нет, то сделать что-нибудь другое
 // - Деструкторы могут бросать исключения
-// - Обёртки вокруг библиотечных функций, являющихся strong exception safe, сами являются strong exception safe. Тем не менее, использование этой либы не гарантирует то, что ваш код будет strong exception safe. Например, деструктор libsh_treis::libc::fd закрывает файл. Но если xopen3 создал его, то удалён он не будет! Другой пример: открываем файл для записи, пишем данные, потом пишем ещё данные и закрываем. Если при записи второго блока данных произойдёт ошибка, то первая запись не откатится
+// - Обёртки вокруг библиотечных функций, являющихся strong exception safe, сами являются strong exception safe. Тем не менее, использование этой либы не гарантирует то, что ваш код будет strong exception safe. Например, деструктор libsh_treis::libc::fd закрывает файл. Но если x_open3 создал его, то удалён он не будет! Другой пример: открываем файл для записи, пишем данные, потом пишем ещё данные и закрываем. Если при записи второго блока данных произойдёт ошибка, то первая запись не откатится
 // - Печать backtrace'а временно отключена, чтобы выяснить, нужна ли она. Когда понадобится - включить. А также убирать '\n' при генерации исключения, а не при ловле
 // - RAII-обёртки вокруг файловых дескрипторов и тому подобного не должны иметь особого состояния. Если разрешить особое состояние, то выловить попытку использования обёртки в особом состоянии можно будет только с помощью статических анализаторов или в runtime'е, что меня не устраивает. Поэтому особого состояния у обёрток не будет. Если нужно перемещать обёртки, возвращать из функций или деструктуировать их до конца scope'а, нужно использовать std::unique_ptr. Функция, создающая пайп, будет возвращать два unique_ptr'а
 // - Либа работает только с исключениями, которые сообщают об ошибках. Нет поддержки исключений, которые сообщают о том, как нужно завершить программу. Разрешить таким исключениям появляться где угодно в программе - это неправильно. В частности, нет поддержки исключения, которое говорит, что нужно завершить программу, вернув EXIT_FAILURE, но ничего не выводя на экран
+// - Выбрал названия в стиле "x_write", а не "xwrite", потому что иначе обёртки для xcb выглядели бы так: xxcb_ewmh_send_client_message или так: xewmh_send_client_message, а это некрасиво
 
 // Необёрнутые функции и функции, которые не надо использовать
 // - getc не обёрнуто, т. к. работает так же, как и fgetc
@@ -95,11 +96,11 @@ using namespace std::string_literals;
 namespace libsh_treis::libc //@
 { //@
 char * //@
-xstrerror_l (int errnum, locale_t locale)//@;
+x_strerror_l (int errnum, locale_t locale)//@;
 {
   char *result = strerror_l (errnum, locale);
 
-  // Не вызываем здесь xstrerror_l, чтобы не было рекурсии
+  // Не вызываем здесь x_strerror_l, чтобы не было рекурсии
   if (result == nullptr)
     {
       _LIBSH_TREIS_THROW_MESSAGE ("Failed");
@@ -114,7 +115,7 @@ xstrerror_l (int errnum, locale_t locale)//@;
   do \
     { \
       int saved_errno = errno; \
-      throw std::runtime_error (__func__ + ": "s + xstrerror_l (saved_errno, (locale_t)0) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); \
+      throw std::runtime_error (__func__ + ": "s + x_strerror_l (saved_errno, (locale_t)0) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); \
     } \
   while (false)
 
@@ -173,7 +174,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-xwrite (int fildes, const void *buf, size_t nbyte)//@;
+x_write (int fildes, const void *buf, size_t nbyte)//@;
 {
   ssize_t result = write (fildes, buf, nbyte);
 
@@ -191,7 +192,7 @@ xwrite (int fildes, const void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-xread (int fildes, void *buf, size_t nbyte)//@;
+x_read (int fildes, void *buf, size_t nbyte)//@;
 {
   ssize_t result = read (fildes, buf, nbyte);
 
@@ -209,7 +210,7 @@ xread (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xfgetc_nunu (FILE *stream)//@;
+x_fgetc_nunu (FILE *stream)//@;
 {
   clearerr (stream);
 
@@ -229,7 +230,7 @@ xfgetc_nunu (FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xgetchar_nunu (void)//@;
+x_getchar_nunu (void)//@;
 {
   clearerr (stdin);
 
@@ -250,7 +251,7 @@ xgetchar_nunu (void)//@;
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-xgetdelim (char **lineptr, size_t *n, int delimiter, FILE *stream)//@;
+x_getdelim (char **lineptr, size_t *n, int delimiter, FILE *stream)//@;
 {
   clearerr (stdin);
 
@@ -271,9 +272,9 @@ xgetdelim (char **lineptr, size_t *n, int delimiter, FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-xgetline (char **lineptr, size_t *n, FILE *stream)//@;
+x_getline (char **lineptr, size_t *n, FILE *stream)//@;
 {
-  return xgetdelim (lineptr, n, '\n', stream);
+  return x_getdelim (lineptr, n, '\n', stream);
 }
 } //@
 
@@ -282,7 +283,7 @@ xgetline (char **lineptr, size_t *n, FILE *stream)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-xopen2 (const char *path, int oflag)//@;
+x_open2 (const char *path, int oflag)//@;
 {
   int result = open (path, oflag);
 
@@ -301,7 +302,7 @@ xopen2 (const char *path, int oflag)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-xopen3_nunu (const char *path, int oflag, mode_t mode)//@;
+x_open3_nunu (const char *path, int oflag, mode_t mode)//@;
 {
   int result = open (path, oflag, mode);
 
@@ -318,7 +319,7 @@ xopen3_nunu (const char *path, int oflag, mode_t mode)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-xclose (int fildes)//@;
+x_close (int fildes)//@;
 {
   if (close (fildes) == -1)
     {
@@ -332,7 +333,7 @@ xclose (int fildes)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xvdprintf (int fildes, const char *format, va_list ap)//@;
+x_vdprintf (int fildes, const char *format, va_list ap)//@;
 {
   int result = vdprintf (fildes, format, ap);
 
@@ -350,7 +351,7 @@ xvdprintf (int fildes, const char *format, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xvfprintf (FILE *stream, const char *format, va_list ap)//@;
+x_vfprintf (FILE *stream, const char *format, va_list ap)//@;
 {
   int result = vfprintf (stream, format, ap);
 
@@ -368,7 +369,7 @@ xvfprintf (FILE *stream, const char *format, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xvprintf (const char *format, va_list ap)//@;
+x_vprintf (const char *format, va_list ap)//@;
 {
   int result = vprintf (format, ap);
 
@@ -387,7 +388,7 @@ xvprintf (const char *format, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xvsnprintf_nunu (char *s, size_t n, const char *format, va_list ap)//@;
+x_vsnprintf_nunu (char *s, size_t n, const char *format, va_list ap)//@;
 {
   int result = vsnprintf (s, n, format, ap);
 
@@ -404,7 +405,7 @@ xvsnprintf_nunu (char *s, size_t n, const char *format, va_list ap)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-xvasprintf (char **strp, const char *fmt, va_list ap)//@;
+x_vasprintf (char **strp, const char *fmt, va_list ap)//@;
 {
   int result = libsh_treis::libc::detail::vasprintf_reexported (strp, fmt, ap);
 
@@ -421,11 +422,11 @@ xvasprintf (char **strp, const char *fmt, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xdprintf (int fildes, const char *format, ...)//@;
+x_dprintf (int fildes, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = xvdprintf (fildes, format, ap);
+  int result = x_vdprintf (fildes, format, ap);
   va_end (ap);
   return result;
 }
@@ -436,11 +437,11 @@ xdprintf (int fildes, const char *format, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xfprintf (FILE *stream, const char *format, ...)//@;
+x_fprintf (FILE *stream, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = xvfprintf (stream, format, ap);
+  int result = x_vfprintf (stream, format, ap);
   va_end (ap);
   return result;
 }
@@ -450,11 +451,11 @@ xfprintf (FILE *stream, const char *format, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xprintf (const char *format, ...)//@;
+x_printf (const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = xvprintf (format, ap);
+  int result = x_vprintf (format, ap);
   va_end (ap);
   return result;
 }
@@ -465,11 +466,11 @@ xprintf (const char *format, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xsnprintf (char *s, size_t n, const char *format, ...)//@;
+x_snprintf (char *s, size_t n, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = xvsnprintf_nunu (s, n, format, ap);
+  int result = x_vsnprintf_nunu (s, n, format, ap);
   va_end (ap);
   return result;
 }
@@ -479,11 +480,11 @@ xsnprintf (char *s, size_t n, const char *format, ...)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-xasprintf_nunu (char **strp, const char *fmt, ...)//@;
+x_asprintf_nunu (char **strp, const char *fmt, ...)//@;
 {
   va_list ap;
   va_start (ap, fmt);
-  int result = xvasprintf (strp, fmt, ap);
+  int result = x_vasprintf (strp, fmt, ap);
   va_end (ap);
   return result;
 }
@@ -493,7 +494,7 @@ xasprintf_nunu (char **strp, const char *fmt, ...)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-xchdir (const char *path)//@;
+x_chdir (const char *path)//@;
 {
   if (chdir (path) == -1)
     {
@@ -507,7 +508,7 @@ xchdir (const char *path)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 FILE * //@
-xpopen (const char *command, const char *mode)//@;
+x_popen (const char *command, const char *mode)//@;
 {
   FILE *result = popen (command, mode);
 
@@ -524,7 +525,7 @@ xpopen (const char *command, const char *mode)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xpclose (FILE *stream)//@;
+x_pclose (FILE *stream)//@;
 {
   int result = pclose (stream);
 
@@ -541,7 +542,7 @@ xpclose (FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xfileno (FILE *stream)//@;
+x_fileno (FILE *stream)//@;
 {
   int result = fileno (stream);
 
@@ -564,7 +565,7 @@ namespace libsh_treis::libc::no_raii //@
 //@ };
 
 pipe_result //@
-xpipe (void)//@;
+x_pipe (void)//@;
 {
   int result[2];
 
@@ -582,7 +583,7 @@ xpipe (void)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 pid_t //@
-xfork (void)//@;
+x_fork (void)//@;
 {
   pid_t result = fork ();
 
@@ -600,7 +601,7 @@ xfork (void)//@;
 namespace libsh_treis::libc //@
 { //@
 pid_t //@
-xwaitpid (pid_t pid, int *stat_loc, int options)//@;
+x_waitpid (pid_t pid, int *stat_loc, int options)//@;
 {
   pid_t result = waitpid (pid, stat_loc, options);
 
@@ -613,12 +614,12 @@ xwaitpid (pid_t pid, int *stat_loc, int options)//@;
 }
 } //@
 
-// Функция обычно используется, чтобы скопировать fd на 0, 1 или 2. Эти fd не имеет смысла оборачивать в RAII-обёртки. Поэтому не-RAII версию xdup2 помещаем в namespace libsh_treis::libc
+// Функция обычно используется, чтобы скопировать fd на 0, 1 или 2. Эти fd не имеет смысла оборачивать в RAII-обёртки. Поэтому не-RAII версию x_dup2 помещаем в namespace libsh_treis::libc
 #include <unistd.h>
 namespace libsh_treis::libc //@
 { //@
 void //@
-xdup2 (int fildes, int fildes2)//@;
+x_dup2 (int fildes, int fildes2)//@;
 {
   if (dup2 (fildes, fildes2) == -1)
     {
@@ -632,7 +633,7 @@ xdup2 (int fildes, int fildes2)//@;
 namespace libsh_treis::libc //@
 { //@
 [[noreturn]] void //@
-xexecv_nunu (const char *path, const char *const argv[])//@;
+x_execv_nunu (const char *path, const char *const argv[])//@;
 {
   execv (path, (char *const *)argv);
 
@@ -644,7 +645,7 @@ xexecv_nunu (const char *path, const char *const argv[])//@;
 namespace libsh_treis::libc //@
 { //@
 [[noreturn]] void //@
-xexecvp (const char *file, const char *const argv[])//@;
+x_execvp (const char *file, const char *const argv[])//@;
 {
   execvp (file, (char *const *)argv);
 
@@ -659,9 +660,9 @@ xexecvp (const char *file, const char *const argv[])//@;
 namespace libsh_treis::libc //@
 { //@
 char //@
-xxfgetc_nunu (FILE *stream)//@;
+xx_fgetc_nunu (FILE *stream)//@;
 {
-  int result = xfgetc_nunu (stream);
+  int result = x_fgetc_nunu (stream);
 
   if (result == EOF)
     {
@@ -677,9 +678,9 @@ xxfgetc_nunu (FILE *stream)//@;
 namespace libsh_treis::libc //@
 { //@
 char //@
-xxgetchar_nunu (void)//@;
+xx_getchar_nunu (void)//@;
 {
-  int result = xgetchar_nunu ();
+  int result = x_getchar_nunu ();
 
   if (result == EOF)
     {
@@ -705,7 +706,7 @@ read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 
   while (have_read < (ssize_t)nbyte)
     {
-      ssize_t result_of_xread = xread (fildes, (char *)buf + have_read, nbyte - have_read);
+      ssize_t result_of_xread = x_read (fildes, (char *)buf + have_read, nbyte - have_read);
 
       if (result_of_xread == 0)
         {
@@ -724,7 +725,7 @@ read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 bool //@
-xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+x_read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
   ssize_t have_read = read_repeatedly (fildes, buf, nbyte);
 
@@ -746,9 +747,9 @@ xread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-xxread_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+xx_read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
-  if (!xread_repeatedly (fildes, buf, nbyte))
+  if (!x_read_repeatedly (fildes, buf, nbyte))
     {
       _LIBSH_TREIS_THROW_MESSAGE ("EOF");
     }
@@ -766,7 +767,7 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 
   while (written != (ssize_t)nbyte)
     {
-      written += xwrite (fildes, (const char *)buf + written, nbyte - written);
+      written += x_write (fildes, (const char *)buf + written, nbyte - written);
     }
 }
 } //@
@@ -775,10 +776,10 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@ #include <unistd.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ struct xopen2_tag
+//@ struct x_open2_tag
 //@ {
 //@ };
-//@ struct xopen3_tag_nunu
+//@ struct x_open3_tag_nunu
 //@ {
 //@ };
 //@ struct pipe_result;
@@ -791,15 +792,15 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   {
 //@   }
 
-//@   friend pipe_result xpipe (void);
+//@   friend pipe_result x_pipe (void);
 
 //@ public:
 
-//@   fd (xopen2_tag, const char *path, int oflag) : _fd (libsh_treis::libc::no_raii::xopen2 (path, oflag)), _exceptions (std::uncaught_exceptions ())
+//@   fd (x_open2_tag, const char *path, int oflag) : _fd (libsh_treis::libc::no_raii::x_open2 (path, oflag)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
-//@   fd (xopen3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (libsh_treis::libc::no_raii::xopen3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
+//@   fd (x_open3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (libsh_treis::libc::no_raii::x_open3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
@@ -812,7 +813,7 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   {
 //@     if (std::uncaught_exceptions () == _exceptions)
 //@       {
-//@         xclose (_fd);
+//@         x_close (_fd);
 //@       }
 //@     else
 //@       {
@@ -872,11 +873,11 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 namespace libsh_treis::libc //@
 { //@
 std::string //@
-xvasprintf (const char *fmt, va_list ap)//@;
+x_vasprintf (const char *fmt, va_list ap)//@;
 {
   char *str;
 
-  int length = libsh_treis::libc::no_raii::xvasprintf (&str, fmt, ap);
+  int length = libsh_treis::libc::no_raii::x_vasprintf (&str, fmt, ap);
 
   std::string result (str, length);
 
@@ -891,11 +892,11 @@ xvasprintf (const char *fmt, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 std::string //@
-xasprintf (const char *fmt, ...)//@;
+x_asprintf (const char *fmt, ...)//@;
 {
   va_list ap;
   va_start (ap, fmt);
-  std::string result = xvasprintf (fmt, ap);
+  std::string result = x_vasprintf (fmt, ap);
   va_end (ap);
   return result;
 }
@@ -931,7 +932,7 @@ process_succeed (int status)//@;
 
 //@ public:
 
-//@   pipe_stream (const char *command, const char *mode) : _stream (libsh_treis::libc::no_raii::xpopen (command, mode)), _exceptions (std::uncaught_exceptions ())
+//@   pipe_stream (const char *command, const char *mode) : _stream (libsh_treis::libc::no_raii::x_popen (command, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
 
@@ -944,7 +945,7 @@ process_succeed (int status)//@;
 //@   {
 //@     if (std::uncaught_exceptions () == _exceptions)
 //@       {
-//@         process_succeed (xpclose (_stream));
+//@         process_succeed (x_pclose (_stream));
 //@       }
 //@     else
 //@       {
@@ -970,9 +971,9 @@ namespace libsh_treis::libc //@
 //@   std::unique_ptr<fd> writable;
 //@ };
 pipe_result //@
-xpipe (void)//@;
+x_pipe (void)//@;
 {
-  auto result = libsh_treis::libc::no_raii::xpipe ();
+  auto result = libsh_treis::libc::no_raii::x_pipe ();
 
   return { .readable = std::unique_ptr<fd> (new fd (result.readable)), .writable = std::unique_ptr<fd> (new fd (result.writable)) };
 }
@@ -986,7 +987,7 @@ namespace libsh_treis::libc::no_raii //@
 pid_t //@
 safe_fork (const std::function<void(void)> &func)//@;
 {
-  pid_t result = libsh_treis::libc::no_raii::xfork ();
+  pid_t result = libsh_treis::libc::no_raii::x_fork ();
 
   if (result == 0)
     {
@@ -1001,11 +1002,11 @@ safe_fork (const std::function<void(void)> &func)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xwaitpid_status (pid_t pid, int options)//@;
+x_waitpid_status (pid_t pid, int options)//@;
 {
   int result;
 
-  xwaitpid (pid, &result, options);
+  x_waitpid (pid, &result, options);
 
   return result;
 }
@@ -1036,7 +1037,7 @@ xwaitpid_status (pid_t pid, int options)//@;
 //@   {
 //@     if (std::uncaught_exceptions () == _exceptions)
 //@       {
-//@         process_succeed (xwaitpid_status (_pid, 0));
+//@         process_succeed (x_waitpid_status (_pid, 0));
 //@       }
 //@     else
 //@       {
@@ -1057,13 +1058,13 @@ xwaitpid_status (pid_t pid, int options)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
+x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 {
   assert (proc != nullptr);
 
   process *ptr = proc.release ();
 
-  int result = xwaitpid_status (ptr->get (), options);
+  int result = x_waitpid_status (ptr->get (), options);
 
   operator delete (ptr);
 
@@ -1071,13 +1072,13 @@ xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 }
 } //@
 
-// xexecv_string и xexecvp_string - для range'а объектов, у которых есть c_str ()
+// x_execv_string и x_execvp_string - для range'а объектов, у которых есть c_str ()
 
 //@ #include <vector>
 //@ namespace libsh_treis::libc
 //@ {
 //@ template <typename Iter> [[noreturn]] void
-//@ xexecv_string_nunu (const char *path, Iter b, Iter e)
+//@ x_execv_string_nunu (const char *path, Iter b, Iter e)
 //@ {
 //@   std::vector<const char *> v;
 //@   for (; b != e; ++b)
@@ -1085,7 +1086,7 @@ xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@       v.push_back (b->c_str ());
 //@     }
 //@   v.push_back (nullptr);
-//@   xexecv_nunu (path, v.data ());
+//@   x_execv_nunu (path, v.data ());
 //@ }
 //@ }
 
@@ -1093,7 +1094,7 @@ xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ namespace libsh_treis::libc
 //@ {
 //@ template <typename Iter> [[noreturn]] void
-//@ xexecvp_string (const char *file, Iter b, Iter e)
+//@ x_execvp_string (const char *file, Iter b, Iter e)
 //@ {
 //@   std::vector<const char *> v;
 //@   for (; b != e; ++b)
@@ -1101,7 +1102,7 @@ xwaitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@       v.push_back (b->c_str ());
 //@     }
 //@   v.push_back (nullptr);
-//@   xexecvp (file, v.data ());
+//@   x_execvp (file, v.data ());
 //@ }
 //@ }
 
