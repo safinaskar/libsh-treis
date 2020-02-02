@@ -169,6 +169,19 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 }
 } //@
 
+//@ namespace libsh_treis
+//@ {
+//@ class not_movable
+//@ {
+//@ public:
+//@   not_movable () = default;
+//@   not_movable (not_movable &&) = delete;
+//@   not_movable (const not_movable &) = delete;
+//@   not_movable &operator= (not_movable &&) = delete;
+//@   not_movable &operator= (const not_movable &) = delete;
+//@ };
+//@ }
+
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
@@ -785,7 +798,7 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@ {
 //@ };
 //@ struct pipe_result;
-//@ class fd
+//@ class fd: libsh_treis::not_movable
 //@ {
 //@   int _fd;
 //@   int _exceptions;
@@ -805,11 +818,6 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   fd (x_open3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (libsh_treis::libc::no_raii::x_open3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   fd (fd &&) = delete;
-//@   fd (const fd &) = delete;
-//@   fd &operator= (fd &&) = delete;
-//@   fd &operator= (const fd &) = delete;
 
 //@   ~fd (void) noexcept (false)
 //@   {
@@ -927,7 +935,7 @@ process_succeed (int status)//@;
 //@ #include <stdio.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ class pipe_stream
+//@ class pipe_stream: libsh_treis::not_movable
 //@ {
 //@   FILE *_stream;
 //@   int _exceptions;
@@ -937,11 +945,6 @@ process_succeed (int status)//@;
 //@   pipe_stream (const char *command, const char *mode) : _stream (libsh_treis::libc::no_raii::x_popen (command, mode)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   pipe_stream (pipe_stream &&) = delete;
-//@   pipe_stream (const pipe_stream &) = delete;
-//@   pipe_stream &operator= (pipe_stream &&) = delete;
-//@   pipe_stream &operator= (const pipe_stream &) = delete;
 
 //@   ~pipe_stream (void) noexcept (false)
 //@   {
@@ -1019,7 +1022,7 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@ #include <sys/wait.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ class process
+//@ class process : libsh_treis::not_movable
 //@ {
 //@   pid_t _pid;
 //@   int _exceptions;
@@ -1029,11 +1032,6 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@   explicit process (const std::function<void(void)> &func) : _pid (libsh_treis::libc::no_raii::safe_fork (func)), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   process (process &&) = delete;
-//@   process (const process &) = delete;
-//@   process &operator= (process &&) = delete;
-//@   process &operator= (const process &) = delete;
 
 //@   ~process (void) noexcept (false)
 //@   {
