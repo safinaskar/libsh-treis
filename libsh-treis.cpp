@@ -51,6 +51,7 @@
 // - Либа работает только с исключениями, которые сообщают об ошибках. Нет поддержки исключений, которые сообщают о том, как нужно завершить программу. Разрешить таким исключениям появляться где угодно в программе - это неправильно. В частности, нет поддержки исключения, которое говорит, что нужно завершить программу, вернув EXIT_FAILURE, но ничего не выводя на экран
 // - Выбрал названия в стиле "x_write", а не "xwrite", потому что иначе обёртки для xcb выглядели бы так: xxcb_ewmh_send_client_message или так: xewmh_send_client_message, а это некрасиво
 // - Даже no_raii-функции exception-safe, например, libsh_treis::xcb::no_raii::x_connect делает xcb_disconnect в случае ошибки
+// - Вещи, не имеющие особого отношения к сути libsh_treis, но которые могут пригодиться в моём коде, вынесены в libsh_treis::tools. По сути это аналог Google Abseil, который я не стал выносить в отдельную либу, т. к. я всё равно никому не показываю свой код
 
 // Необёрнутые функции и функции, которые не надо использовать
 // - getc не обёрнуто, т. к. работает так же, как и fgetc
@@ -169,17 +170,116 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 }
 } //@
 
-//@ namespace libsh_treis
+//@ namespace libsh_treis::tools
 //@ {
 //@ class not_movable
 //@ {
 //@ public:
-//@   not_movable () = default;
+//@   not_movable (void) = default;
 //@   not_movable (not_movable &&) = delete;
 //@   not_movable (const not_movable &) = delete;
-//@   not_movable &operator= (not_movable &&) = delete;
-//@   not_movable &operator= (const not_movable &) = delete;
+//@   not_movable &
+//@   operator= (not_movable &&) = delete;
+//@   not_movable &
+//@   operator= (const not_movable &) = delete;
 //@ };
+//@ }
+
+// У этого указателя всё равно есть пустое состояние. Но всё же этот указатель нужен, чтобы дать понять читающему, что указатель должен быть ненулевым
+// Предполагает, что деструктор не бросает исключений. Сделать деструктор not_null_uptr условно noexcept сложно
+//@ #include <assert.h>
+//@ #include <utility>
+//@ #include <type_traits>
+//@ #include <memory>
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename T> class not_null_uptr
+//@ {
+//@   static_assert (!std::is_array_v<T>);
+
+//@   T *_ptr;
+
+//@ public:
+//@   explicit not_null_uptr (T *ptr) noexcept : _ptr (ptr)
+//@   {
+//@     assert (ptr != nullptr);
+//@   }
+
+//@   explicit not_null_uptr (std::unique_ptr<T> ptr) noexcept : _ptr (ptr.release ())
+//@   {
+//@     assert (_ptr != nullptr);
+//@   }
+
+//@   not_null_uptr (not_null_uptr &&other) noexcept : _ptr (other._ptr)
+//@   {
+//@     other._ptr = nullptr;
+//@   }
+
+//@   not_null_uptr (const not_null_uptr &) = delete;
+
+//@   // Не меняет при присваивании себе
+//@   not_null_uptr &
+//@   operator= (not_null_uptr &&other) noexcept
+//@   {
+//@     T *ptr = other._ptr;
+//@     other._ptr = nullptr;
+//@     delete _ptr;
+//@     _ptr = ptr;
+//@     return *this;
+//@   }
+
+//@   not_null_uptr &
+//@   operator= (const not_null_uptr &) = delete;
+
+//@   ~not_null_uptr (void)
+//@   {
+//@     delete _ptr;
+//@   }
+
+//@   T *
+//@   get () const noexcept
+//@   {
+//@     assert (_ptr != nullptr);
+//@     return _ptr;
+//@   }
+
+//@   T &
+//@   operator* () const noexcept
+//@   {
+//@     assert (_ptr != nullptr);
+//@     return *_ptr;
+//@   }
+
+//@   T *
+//@   operator-> () const noexcept
+//@   {
+//@     assert (_ptr != nullptr);
+//@     return _ptr;
+//@   }
+
+//@   void
+//@   reset (T *ptr) noexcept
+//@   {
+//@     assert (ptr != nullptr);
+//@     delete _ptr;
+//@     _ptr = ptr;
+//@   }
+
+//@   T *
+//@   release () noexcept
+//@   {
+//@     assert (_ptr != nullptr);
+//@     T *result = _ptr;
+//@     _ptr = nullptr;
+//@     return result;
+//@   }
+//@ };
+
+//@ template <typename T, typename... Args> not_null_uptr<T>
+//@ make_not_null_u (Args &&... args)
+//@ {
+//@   return not_null_uptr<T> (new T (std::forward<Args> (args)...));
+//@ }
 //@ }
 
 // Простые обёртки
@@ -798,7 +898,7 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@ {
 //@ };
 //@ struct pipe_result;
-//@ class fd: libsh_treis::not_movable
+//@ class fd: libsh_treis::tools::not_movable
 //@ {
 //@   int _fd;
 //@   int _exceptions;
@@ -807,7 +907,8 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   {
 //@   }
 
-//@   friend pipe_result x_pipe (void);
+//@   friend pipe_result
+//@   x_pipe (void);
 
 //@ public:
 
@@ -935,7 +1036,7 @@ process_succeed (int status)//@;
 //@ #include <stdio.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ class pipe_stream: libsh_treis::not_movable
+//@ class pipe_stream: libsh_treis::tools::not_movable
 //@ {
 //@   FILE *_stream;
 //@   int _exceptions;
@@ -1022,7 +1123,7 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@ #include <sys/wait.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ class process : libsh_treis::not_movable
+//@ class process : libsh_treis::tools::not_movable
 //@ {
 //@   pid_t _pid;
 //@   int _exceptions;
@@ -1053,15 +1154,11 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@ };
 //@ }
 
-//@ #include <memory>
-#include <assert.h>
 namespace libsh_treis::libc //@
 { //@
 int //@
-x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
+x_waitpid_raii (libsh_treis::tools::not_null_uptr<process> proc, int options)//@;
 {
-  assert (proc != nullptr);
-
   process *ptr = proc.release ();
 
   int result = x_waitpid_status (ptr->get (), options);
@@ -1106,11 +1203,11 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ }
 //@ }
 
-//@ // Выделяет память для массива, инициализируя с помощью default initializing. Независимо от того, что написано в стандарте. Добавил, т. к. не нашёл подобной функции в моей реализации библиотеки, когда будет везде, надо будет удалить
+//@ // Выделяет память для массива, инициализируя с помощью default initializing. Независимо от того, что написано в стандарте. Добавил, т. к. не нашёл подобной функции в моей реализации стандартной библиотеки C++, когда будет везде, надо будет удалить
 //@ #include <cstddef>
 //@ #include <memory>
 //@ #include <type_traits>
-//@ namespace libsh_treis::cxx
+//@ namespace libsh_treis::tools
 //@ {
 //@ template <typename T> std::unique_ptr<T>
 //@ make_unique_default_init (std::size_t size)
