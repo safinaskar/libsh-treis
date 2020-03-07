@@ -1,7 +1,7 @@
 export
 
 CXX ?= c++
-CPPFLAGS ?=
+CPPFLAGS ?= -DNDEBUG
 CXXFLAGS ?= -O3 -g -Wall -Wextra -pedantic
 LDFLAGS ?=
 BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
