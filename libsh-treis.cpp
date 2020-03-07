@@ -891,12 +891,6 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@ #include <unistd.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ struct x_open2_tag
-//@ {
-//@ };
-//@ struct x_open3_tag_nunu
-//@ {
-//@ };
 //@ struct pipe_result;
 //@ class fd: libsh_treis::tools::not_movable
 //@ {
@@ -910,15 +904,13 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   friend pipe_result
 //@   x_pipe (void);
 
+//@   friend fd
+//@   x_open2 (const char *path, int oflag);
+
+//@   friend fd
+//@   x_open3_nunu (const char *path, int oflag, mode_t mode);
+
 //@ public:
-
-//@   fd (x_open2_tag, const char *path, int oflag) : _fd (libsh_treis::libc::no_raii::x_open2 (path, oflag)), _exceptions (std::uncaught_exceptions ())
-//@   {
-//@   }
-
-//@   fd (x_open3_tag_nunu, const char *path, int oflag, mode_t mode) : _fd (libsh_treis::libc::no_raii::x_open3_nunu (path, oflag, mode)), _exceptions (std::uncaught_exceptions ())
-//@   {
-//@   }
 
 //@   ~fd (void) noexcept (false)
 //@   {
@@ -939,6 +931,21 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   }
 //@ };
 //@ }
+
+namespace libsh_treis::libc //@
+{ //@
+fd //@
+x_open2 (const char *path, int oflag)//@;
+{
+  return fd (libsh_treis::libc::no_raii::x_open2 (path, oflag));
+}
+
+fd //@
+x_open3_nunu (const char *path, int oflag, mode_t mode)//@;
+{
+  return fd (libsh_treis::libc::no_raii::x_open3_nunu (path, oflag, mode));
+}
+} //@
 
 // Мне не нравятся функции для парсинга целых чисел в стандартах C и C++, поэтому я пишу свою. А раз уж пишу свою, то в качестве back end'а буду использовать from_chars как самую низкоуровневую и быструю
 //@ #include <string_view>
@@ -1041,11 +1048,14 @@ process_succeed (int status)//@;
 //@   FILE *_stream;
 //@   int _exceptions;
 
-//@ public:
-
-//@   pipe_stream (const char *command, const char *mode) : _stream (libsh_treis::libc::no_raii::x_popen (command, mode)), _exceptions (std::uncaught_exceptions ())
+//@   explicit pipe_stream (FILE *stream) noexcept : _stream (stream), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
+
+//@   friend pipe_stream
+//@   x_popen (const char *command, const char *mode);
+
+//@ public:
 
 //@   ~pipe_stream (void) noexcept (false)
 //@   {
@@ -1066,6 +1076,15 @@ process_succeed (int status)//@;
 //@   }
 //@ };
 //@ }
+
+namespace libsh_treis::libc //@
+{ //@
+pipe_stream //@
+x_popen (const char *command, const char *mode)//@;
+{
+  return pipe_stream (libsh_treis::libc::no_raii::x_popen (command, mode));
+}
+} //@
 
 // Эта функция не является exception-safe
 //@ #include <memory>
@@ -1128,11 +1147,14 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@   pid_t _pid;
 //@   int _exceptions;
 
-//@ public:
-
-//@   explicit process (const std::function<void(void)> &func) : _pid (libsh_treis::libc::no_raii::safe_fork (func)), _exceptions (std::uncaught_exceptions ())
+//@   explicit process (pid_t pid) noexcept : _pid (pid), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
+
+//@   friend process
+//@   safe_fork (const std::function<void(void)> &func);
+
+//@ public:
 
 //@   ~process (void) noexcept (false)
 //@   {
@@ -1153,6 +1175,15 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@   }
 //@ };
 //@ }
+
+namespace libsh_treis::libc //@
+{ //@
+process //@
+safe_fork (const std::function<void(void)> &func)//@;
+{
+  return process (libsh_treis::libc::no_raii::safe_fork (func));
+}
+} //@
 
 namespace libsh_treis::libc //@
 { //@
