@@ -395,11 +395,14 @@ x_getline (char **lineptr, size_t *n, FILE *stream)//@;
 
 // Инклудит хедер для O_RDONLY и тому подобных
 //@ #include <fcntl.h>
+#include <assert.h>
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
 x_open2 (const char *path, int oflag)//@;
 {
+  assert (!((oflag & O_CREAT) || (oflag & O_TMPFILE)));
+
   int result = open (path, oflag);
 
   if (result == -1)
