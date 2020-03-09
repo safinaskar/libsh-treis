@@ -185,103 +185,6 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ };
 //@ }
 
-// У этого указателя всё равно есть пустое состояние. Но всё же этот указатель нужен, чтобы дать понять читающему, что указатель должен быть ненулевым
-// Предполагает, что деструктор не бросает исключений. Сделать деструктор not_null_ptr условно noexcept сложно
-//@ #include <assert.h>
-//@ #include <utility>
-//@ #include <type_traits>
-//@ #include <memory>
-//@ namespace libsh_treis::tools
-//@ {
-//@ template <typename T> class not_null_ptr
-//@ {
-//@   static_assert (!std::is_array_v<T>);
-
-//@   T *_ptr;
-
-//@ public:
-//@   explicit not_null_ptr (T *ptr) noexcept : _ptr (ptr)
-//@   {
-//@     assert (ptr != nullptr);
-//@   }
-
-//@   explicit not_null_ptr (std::unique_ptr<T> ptr) noexcept : _ptr (ptr.release ())
-//@   {
-//@     assert (_ptr != nullptr);
-//@   }
-
-//@   not_null_ptr (not_null_ptr &&other) noexcept : _ptr (other._ptr)
-//@   {
-//@     other._ptr = nullptr;
-//@   }
-
-//@   not_null_ptr (const not_null_ptr &) = delete;
-
-//@   // Не меняет при присваивании себе
-//@   not_null_ptr &
-//@   operator= (not_null_ptr &&other) noexcept
-//@   {
-//@     T *ptr = other._ptr;
-//@     other._ptr = nullptr;
-//@     delete _ptr;
-//@     _ptr = ptr;
-//@     return *this;
-//@   }
-
-//@   not_null_ptr &
-//@   operator= (const not_null_ptr &) = delete;
-
-//@   ~not_null_ptr (void)
-//@   {
-//@     delete _ptr;
-//@   }
-
-//@   T *
-//@   get () const noexcept
-//@   {
-//@     assert (_ptr != nullptr);
-//@     return _ptr;
-//@   }
-
-//@   T &
-//@   operator* () const noexcept
-//@   {
-//@     assert (_ptr != nullptr);
-//@     return *_ptr;
-//@   }
-
-//@   T *
-//@   operator-> () const noexcept
-//@   {
-//@     assert (_ptr != nullptr);
-//@     return _ptr;
-//@   }
-
-//@   void
-//@   reset (T *ptr) noexcept
-//@   {
-//@     assert (ptr != nullptr);
-//@     delete _ptr;
-//@     _ptr = ptr;
-//@   }
-
-//@   T *
-//@   release () noexcept
-//@   {
-//@     assert (_ptr != nullptr);
-//@     T *result = _ptr;
-//@     _ptr = nullptr;
-//@     return result;
-//@   }
-//@ };
-
-//@ template <typename T, typename... Args> not_null_ptr<T>
-//@ make_not_null (Args &&... args)
-//@ {
-//@   return not_null_ptr<T> (new T (std::forward<Args> (args)...));
-//@ }
-//@ }
-
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
@@ -1188,11 +1091,15 @@ safe_fork (const std::function<void(void)> &func)//@;
 }
 } //@
 
+//@ #include <memory>
+#include <assert.h>
 namespace libsh_treis::libc //@
 { //@
 int //@
-x_waitpid_raii (libsh_treis::tools::not_null_ptr<process> proc, int options)//@;
+x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 {
+  assert (proc != nullptr);
+
   process *ptr = proc.release ();
 
   int result = x_waitpid_status (ptr->get (), options);
