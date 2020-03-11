@@ -674,6 +674,23 @@ x_execvp (const char *file, const char *const argv[])//@;
 }
 } //@
 
+//@ #include <time.h>
+namespace libsh_treis::libc //@
+{ //@
+timespec //@
+x_clock_gettime (clockid_t clk_id)//@;
+{
+  timespec result;
+
+  if (clock_gettime (clk_id, &result) == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
