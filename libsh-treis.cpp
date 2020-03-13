@@ -691,6 +691,26 @@ x_clock_gettime (clockid_t clk_id)//@;
 }
 } //@
 
+//@ #include <pthread.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+pthread_t //@
+x_pthread_create (const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg)//@;
+{
+  pthread_t result;
+
+  int error = pthread_create (&result, attr, start_routine, arg);
+
+  if (error != 0)
+    {
+      errno = error;
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
