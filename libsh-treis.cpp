@@ -188,7 +188,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 // Работает всегда, даже в NDEBUG. Тем не менее, смысл тот же: если assertion не выполняется, значит, в программе баг. Т. е. этот макрос нельзя использовать для проверки того, что реально может произойти
 //@ #include <stdio.h>
 //@ #include <stdlib.h>
-//@ #define LIBSH_TREIS_ASSERT(assertion) do{ if (!(assertion)){ fprintf (stderr, "Assertion \"%s\" failed\n", #assertion); abort (); } }while(0)
+//@ #define LIBSH_TREIS_ASSERT(assertion) do{ if (!(assertion)){ fprintf (stderr, "Assertion \"%s\" failed\n", #assertion); abort (); } }while (false)
 
 // Простые обёртки
 
