@@ -46,7 +46,7 @@
 // - Деструкторы могут бросать исключения
 // - Обёртки вокруг библиотечных функций, являющихся strong exception safe, сами являются strong exception safe. Тем не менее, использование этой либы не гарантирует то, что ваш код будет strong exception safe. Например, деструктор libsh_treis::libc::fd закрывает файл. Но если x_open3 создал его, то удалён он не будет! Другой пример: открываем файл для записи, пишем данные, потом пишем ещё данные и закрываем. Если при записи второго блока данных произойдёт ошибка, то первая запись не откатится
 // - Печать backtrace'а временно отключена, чтобы выяснить, нужна ли она. Когда понадобится - включить. А также убирать '\n' при генерации исключения, а не при ловле
-// -- Если __PRETTY_FUNCTION__ окажется слишком длинным, убирать из него лишнее (но __func__ не использовать, нам нужны namespace'ы)
+// -- После того, как приму решение, нужен ли backtrace, переписать LIBSH_TREIS_ASSERT
 // - RAII-обёртки вокруг файловых дескрипторов и тому подобного не должны иметь особого состояния. Если разрешить особое состояние, то выловить попытку использования обёртки в особом состоянии можно будет только с помощью статических анализаторов или в runtime'е, что меня не устраивает. Поэтому особого состояния у обёрток не будет. Если нужно перемещать обёртки, возвращать из функций или деструктуировать их до конца scope'а, нужно использовать std::unique_ptr. Функция, создающая пайп, будет возвращать два unique_ptr'а
 // - Либа работает только с исключениями, которые сообщают об ошибках. Нет поддержки исключений, которые сообщают о том, как нужно завершить программу. Разрешить таким исключениям появляться где угодно в программе - это неправильно. В частности, нет поддержки исключения, которое говорит, что нужно завершить программу, вернув EXIT_FAILURE, но ничего не выводя на экран
 // - Выбрал названия в стиле "x_write", а не "xwrite", потому что иначе обёртки для xcb выглядели бы так: xxcb_ewmh_send_client_message или так: xewmh_send_client_message, а это некрасиво
@@ -185,6 +185,11 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ };
 //@ }
 
+// Работает всегда, даже в NDEBUG. Тем не менее, смысл тот же: если assertion не выполняется, значит, в программе баг. Т. е. этот макрос нельзя использовать для проверки того, что реально может произойти
+//@ #include <stdio.h>
+//@ #include <stdlib.h>
+//@ #define LIBSH_TREIS_ASSERT(assertion) do{ if (!(assertion)){ fprintf (stderr, "Assertion \"%s\" failed\n", #assertion); abort (); } }while(0)
+
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
@@ -298,13 +303,12 @@ x_getline (char **lineptr, size_t *n, FILE *stream)//@;
 
 // Инклудит хедер для O_RDONLY и тому подобных
 //@ #include <fcntl.h>
-#include <assert.h>
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
 x_open2 (const char *path, int oflag)//@;
 {
-  assert (!((oflag & O_CREAT) || (oflag & O_TMPFILE)));
+  LIBSH_TREIS_ASSERT (!((oflag & O_CREAT) == O_CREAT || (oflag & O_TMPFILE) == O_TMPFILE));
 
   int result = open (path, oflag);
 
@@ -1155,13 +1159,12 @@ safe_fork (const std::function<void(void)> &func)//@;
 } //@
 
 //@ #include <memory>
-#include <assert.h>
 namespace libsh_treis::libc //@
 { //@
 int //@
 x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 {
-  assert (proc != nullptr);
+  LIBSH_TREIS_ASSERT (proc != nullptr);
 
   process *ptr = proc.release ();
 
