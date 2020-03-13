@@ -711,6 +711,19 @@ x_pthread_create (const pthread_attr_t *attr, void *(*start_routine)(void *), vo
 }
 } //@
 
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_syncfs (int fd)//@;
+{
+  if (syncfs (fd) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
