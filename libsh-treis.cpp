@@ -724,6 +724,19 @@ x_syncfs (int fd)//@;
 }
 } //@
 
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_unlink (const char *pathname)//@;
+{
+  if (unlink (pathname) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
