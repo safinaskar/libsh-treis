@@ -741,6 +741,23 @@ x_unlink (const char *pathname)//@;
 }
 } //@
 
+//@ #include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+off_t //@
+x_lseek (int fd, off_t offset, int whence)//@;
+{
+  off_t result = lseek (fd, offset, whence);
+
+  if (result == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
