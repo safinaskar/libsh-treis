@@ -1227,7 +1227,7 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ }
 //@ }
 
-//@ // Выделяет память для массива, инициализируя с помощью default initializing. Независимо от того, что написано в стандарте. Добавил, т. к. не нашёл подобной функции в моей реализации стандартной библиотеки C++, когда будет везде, надо будет удалить
+//@ // Выделяет память для массива, инициализируя с помощью default initializing. Независимо от того, что написано в стандарте. Добавил, т. к. не нашёл подобной функции в моей реализации стандартной библиотеки C++. Когда будет везде, надо будет удалить
 //@ #include <cstddef>
 //@ #include <memory>
 //@ #include <type_traits>
@@ -1238,5 +1238,69 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ {
 //@   static_assert (std::is_unbounded_array_v<T>);
 //@   return std::unique_ptr<T> (new std::remove_extent_t<T>[size]);
+//@ }
+//@ }
+
+//@ // Owning span
+//@ // Предназначен, например, для хранения данных сразу после чтения read'ом или перед записыванием write'ом. От unique_ptr<T[]> отличается отсутствием особого состояния и хранением длины
+//@ // От std::vector отличается отсутствием особого состояния (vector можно переместить и оставить исходный объект в пустом состоянии)
+//@ // Можно создать ospan нулевой длины. Но идеоматический код не должен использовать такой ospan как маркер отсутствия ospan'а
+//@ // ospan нельзя перемещать. Копировать можно, но на данный момент не реализовано
+//@ #include <cstddef>
+//@ #include <type_traits>
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename T> class ospan: libsh_treis::tools::not_movable
+//@ {
+//@   static_assert (!std::is_unbounded_array_v<T>);
+
+//@   T *_ptr;
+//@   std::size_t _size;
+
+//@   explicit ospan (T *ptr, std::size_t size) noexcept : _ptr (ptr), _size (size)
+//@   {
+//@   }
+
+//@   template <typename U> friend ospan<U>
+//@   make_ospan (std::size_t size);
+
+//@   template <typename U> friend ospan<U>
+//@   make_ospan_for_overwrite (std::size_t size);
+
+//@ public:
+//@   ~ospan (void)
+//@   {
+//@     delete [] _ptr;
+//@   }
+
+//@   const T *
+//@   data (void) const noexcept
+//@   {
+//@     return _ptr;
+//@   }
+
+//@   T *
+//@   data (void) noexcept
+//@   {
+//@     return _ptr;
+//@   }
+
+//@   std::size_t
+//@   size (void) const noexcept
+//@   {
+//@     return _size;
+//@   }
+//@ };
+
+//@ template <typename T> ospan<T>
+//@ make_ospan (std::size_t size)
+//@ {
+//@   return ospan<T> (new T[size](), size);
+//@ }
+
+//@ template <typename T> ospan<T>
+//@ make_ospan_for_overwrite (std::size_t size)
+//@ {
+//@   return ospan<T> (new T[size], size);
 //@ }
 //@ }
