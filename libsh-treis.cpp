@@ -413,7 +413,7 @@ x_vprintf (const char *format, va_list ap)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-x_vsnprintf_nunu (char *s, size_t n, const char *format, va_list ap)//@;
+x_vsnprintf (char *s, size_t n, const char *format, va_list ap)//@;
 {
   int result = vsnprintf (s, n, format, ap);
 
@@ -495,7 +495,7 @@ x_snprintf (char *s, size_t n, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = x_vsnprintf_nunu (s, n, format, ap);
+  int result = x_vsnprintf (s, n, format, ap);
   va_end (ap);
   return result;
 }
