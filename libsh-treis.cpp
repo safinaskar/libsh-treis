@@ -758,6 +758,23 @@ x_lseek (int fd, off_t offset, int whence)//@;
 }
 } //@
 
+#include <stdlib.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+int //@
+x_mkstemp (char *templ)//@;
+{
+  int result = mkstemp (templ);
+
+  if (result == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
@@ -900,6 +917,9 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   friend fd
 //@   x_open3_nunu (const char *path, int oflag, mode_t mode);
 
+//@   friend fd
+//@   x_mkstemp (char *templ);
+
 //@ public:
 
 //@   ~fd (void) noexcept (false)
@@ -934,6 +954,12 @@ fd //@
 x_open3_nunu (const char *path, int oflag, mode_t mode)//@;
 {
   return fd (libsh_treis::libc::no_raii::x_open3_nunu (path, oflag, mode));
+}
+
+fd //@
+x_mkstemp (char *templ)//@;
+{
+  return fd (libsh_treis::libc::no_raii::x_mkstemp (templ));
 }
 } //@
 
