@@ -1330,3 +1330,21 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@   return ospan<T> (new T[size], size);
 //@ }
 //@ }
+
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename C, typename F> bool
+//@ has_front_and (const C &c, const F &f)
+//@ {
+//@   return !c.empty () && f (c.front ());
+//@ }
+//@ }
+
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename C, typename F> bool
+//@ has_back_and (const C &c, const F &f)
+//@ {
+//@   return !c.empty () && f (c.back ());
+//@ }
+//@ }
