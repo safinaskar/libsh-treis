@@ -1334,7 +1334,7 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ namespace libsh_treis::tools
 //@ {
 //@ template <typename C, typename F> bool
-//@ has_front_and (const C &c, const F &f)
+//@ has_front_and_nunu (const C &c, const F &f)
 //@ {
 //@   return !c.empty () && f (c.front ());
 //@ }
@@ -1343,8 +1343,24 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ namespace libsh_treis::tools
 //@ {
 //@ template <typename C, typename F> bool
-//@ has_back_and (const C &c, const F &f)
+//@ has_back_and_nunu (const C &c, const F &f)
 //@ {
 //@   return !c.empty () && f (c.back ());
 //@ }
 //@ }
+
+//@ #include <time.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_clock_nanosleep (clockid_t clock_id, int flags, const struct timespec *request)//@;
+{
+  int err = clock_nanosleep (clock_id, flags, request, nullptr);
+
+  if (err != 0)
+    {
+      errno = err;
+      THROW_ERRNO;
+    }
+}
+} //@
