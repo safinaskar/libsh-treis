@@ -985,7 +985,7 @@ x_mkstemp (char *templ)//@;
 //@ namespace libsh_treis::libc
 //@ {
 //@ template <typename T> T
-//@ sto (const std::string_view &s)
+//@ sto (std::string_view s)
 //@ {
 //@   if (s.size () == 0)
 //@     {
