@@ -45,8 +45,6 @@
 // - В случае ошибок бросаются исключения, и ничего не печатается на экран. Т. к. может быть нужно вызвать какую-нибудь функцию, чтобы проверить, может она выполнить своё действие или нет. И если нет, то сделать что-нибудь другое
 // - Деструкторы могут бросать исключения
 // - Обёртки вокруг библиотечных функций, являющихся strong exception safe, сами являются strong exception safe. Тем не менее, использование этой либы не гарантирует то, что ваш код будет strong exception safe. Например, деструктор libsh_treis::libc::fd закрывает файл. Но если x_open3 создал его, то удалён он не будет! Другой пример: открываем файл для записи, пишем данные, потом пишем ещё данные и закрываем. Если при записи второго блока данных произойдёт ошибка, то первая запись не откатится
-// - Печать backtrace'а временно отключена, чтобы выяснить, нужна ли она. Когда понадобится - включить. А также убирать '\n' при генерации исключения, а не при ловле
-// -- После того, как приму решение, нужен ли backtrace, переписать LIBSH_TREIS_ASSERT
 // - RAII-обёртки вокруг файловых дескрипторов и тому подобного не должны иметь особого состояния. Если разрешить особое состояние, то выловить попытку использования обёртки в особом состоянии можно будет только с помощью статических анализаторов или в runtime'е, что меня не устраивает. Поэтому особого состояния у обёрток не будет. Если нужно перемещать обёртки, возвращать из функций или деструктуировать их до конца scope'а, нужно использовать std::unique_ptr. Функция, создающая пайп, будет возвращать два unique_ptr'а
 // - Либа работает только с исключениями, которые сообщают об ошибках. Нет поддержки исключений, которые сообщают о том, как нужно завершить программу. Разрешить таким исключениям появляться где угодно в программе - это неправильно. В частности, нет поддержки исключения, которое говорит, что нужно завершить программу, вернув EXIT_FAILURE, но ничего не выводя на экран
 // - Выбрал названия в стиле "x_write", а не "xwrite", потому что иначе обёртки для xcb выглядели бы так: xxcb_ewmh_send_client_message или так: xewmh_send_client_message, а это некрасиво
@@ -76,23 +74,34 @@
 //@ #include <stdexcept>
 //@ #include <string>
 
+//@ #include <boost/stacktrace.hpp>
+
+//@ #include "gnu-source.hpp"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <locale.h>
 
-#include <boost/stacktrace.hpp>
-
 #include "libsh-treis.hpp"
-#include "gnu-source.hpp"
 
 using namespace std::string_literals;
 
 // Вводная часть
 
 // Используется в функциях, которые реализованны в хедере
-//@ #define _LIBSH_TREIS_THROW_MESSAGE(m) do { throw std::runtime_error (__PRETTY_FUNCTION__ + std::string (": ") + (m) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); } while (false)
+//@ #define _LIBSH_TREIS_THROW_MESSAGE(m) \
+//@   do \
+//@     { \
+//@       auto str = boost::stacktrace::to_string (boost::stacktrace::stacktrace ()); \
+//@       if (!str.empty ()) \
+//@         { \
+//@           str.pop_back (); \
+//@         } \
+//@       throw std::runtime_error (__PRETTY_FUNCTION__ + std::string (": ") + (m) + "\n" + str); \
+//@     } \
+//@   while (false)
 
 //@ #include <locale.h>
 #include <string.h>
@@ -118,7 +127,12 @@ x_strerror_l (int errnum, locale_t locale)//@;
   do \
     { \
       int saved_errno = errno; \
-      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + x_strerror_l (saved_errno, (locale_t)0) /*+ "\n" + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())*/); \
+      auto str = boost::stacktrace::to_string (boost::stacktrace::stacktrace ()); \
+      if (!str.empty ()) \
+        { \
+          str.pop_back (); \
+        } \
+      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + x_strerror_l (saved_errno, (locale_t)0) + "\n" + str); \
     } \
   while (false)
 
@@ -136,15 +150,7 @@ is_successful (const std::function<void(void)> &func) noexcept//@;
   catch (const std::exception &ex)
     {
       // Имя программы обязательно, иначе нельзя понять, какая именно из программ в пайпе свалилась
-      if (ex.what ()[strlen (ex.what ()) - 1] == '\n')
-        {
-          fprintf (stderr, "%s: %s", libsh_treis::detail::program_invocation_name_reexported (), ex.what ());
-        }
-      else
-        {
-          fprintf (stderr, "%s: %s\n", libsh_treis::detail::program_invocation_name_reexported (), ex.what ());
-        }
-
+      fprintf (stderr, "%s: %s\n", libsh_treis::detail::program_invocation_name_reexported (), ex.what ());
       return false;
     }
   catch (...)
@@ -188,7 +194,16 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 // Работает всегда, даже в NDEBUG. Тем не менее, смысл тот же: если assertion не выполняется, значит, в программе баг. Т. е. этот макрос нельзя использовать для проверки того, что реально может произойти
 //@ #include <stdio.h>
 //@ #include <stdlib.h>
-//@ #define LIBSH_TREIS_ASSERT(assertion) do{ if (!(assertion)){ fprintf (stderr, "Assertion \"%s\" failed\n", #assertion); abort (); } }while (false)
+//@ #define LIBSH_TREIS_ASSERT(assertion) \
+//@   do \
+//@     { \
+//@       if (!(assertion)) \
+//@         { \
+//@           fprintf (stderr, "%s", (libsh_treis::detail::program_invocation_name_reexported () + std::string (": ") + __PRETTY_FUNCTION__ + std::string (": assertion \"") + #assertion + std::string ("\" failed\n") + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())).c_str ()); \
+//@           exit (EXIT_FAILURE); \
+//@         } \
+//@     } \
+//@   while (false)
 
 // Простые обёртки
 
