@@ -790,6 +790,22 @@ x_mkstemp (char *templ)//@;
 }
 } //@
 
+//@ #include <time.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_clock_nanosleep (clockid_t clock_id, int flags, const struct timespec *request)//@;
+{
+  int err = clock_nanosleep (clock_id, flags, request, nullptr);
+
+  if (err != 0)
+    {
+      errno = err;
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
@@ -1364,18 +1380,24 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ }
 //@ }
 
-//@ #include <time.h>
-namespace libsh_treis::libc //@
+// Один из возможных алгоритмов правильного соединения компонентов пути. Используется тот алгоритм, который использует GNU find
+//@ #include <string_view>
+namespace libsh_treis::tools //@
 { //@
-void //@
-x_clock_nanosleep (clockid_t clock_id, int flags, const struct timespec *request)//@;
+std::string //@
+build_path_find (std::string_view up, std::string_view down)//@;
 {
-  int err = clock_nanosleep (clock_id, flags, request, nullptr);
+  LIBSH_TREIS_ASSERT (!up.empty ());
+  LIBSH_TREIS_ASSERT (!down.empty ());
+  LIBSH_TREIS_ASSERT (down.front () != '/');
 
-  if (err != 0)
+  if (up.back () == '/')
     {
-      errno = err;
-      THROW_ERRNO;
+      return std::string (up) + std::string (down);
+    }
+  else
+    {
+      return std::string (up) + "/" + std::string (down);
     }
 }
 } //@
