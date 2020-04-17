@@ -860,6 +860,23 @@ x_readdir (DIR *dirp)//@;
 }
 } //@
 
+//@ #include <dirent.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+x_dirfd (DIR *dirp)//@;
+{
+  int result = dirfd (dirp);
+
+  if (result == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
