@@ -806,6 +806,60 @@ x_clock_nanosleep (clockid_t clock_id, int flags, const struct timespec *request
 }
 } //@
 
+//@ #include <dirent.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+DIR * //@
+x_opendir (const char *dirname)//@;
+{
+  DIR *result = opendir (dirname);
+
+  if (result == nullptr)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <dirent.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_closedir (DIR *dirp)//@;
+{
+  if (closedir (dirp) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
+// Мы инклудим <dirent.h>, значит, можно использовать DT_REG и прочие
+//@ #include <dirent.h>
+namespace libsh_treis::libc //@
+{ //@
+dirent * //@
+x_readdir (DIR *dirp)//@;
+{
+  int saved_errno = errno;
+
+  errno = 0;
+
+  dirent *result = readdir (dirp);
+
+  if (result == nullptr && errno != 0)
+    {
+      THROW_ERRNO;
+    }
+
+  errno = saved_errno;
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
@@ -1399,5 +1453,51 @@ build_path_find (std::string_view up, std::string_view down)//@;
     {
       return std::string (up) + "/" + std::string (down);
     }
+}
+} //@
+
+//@ #include <dirent.h>
+//@ namespace libsh_treis::libc
+//@ {
+//@ class directory: libsh_treis::tools::not_movable
+//@ {
+//@   DIR *_d;
+//@   int _exceptions;
+
+//@   explicit directory (DIR *d) noexcept : _d (d), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@   }
+
+//@   friend directory
+//@   x_opendir (const char *dirname);
+
+//@ public:
+
+//@   ~directory (void) noexcept (false)
+//@   {
+//@     if (std::uncaught_exceptions () == _exceptions)
+//@       {
+//@         x_closedir (_d);
+//@       }
+//@     else
+//@       {
+//@         closedir (_d);
+//@       }
+//@   }
+
+//@   DIR *
+//@   get (void) const noexcept
+//@   {
+//@     return _d;
+//@   }
+//@ };
+//@ }
+
+namespace libsh_treis::libc //@
+{ //@
+directory //@
+x_opendir (const char *dirname)//@;
+{
+  return directory (libsh_treis::libc::no_raii::x_opendir (dirname));
 }
 } //@
