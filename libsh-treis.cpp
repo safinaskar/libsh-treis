@@ -877,6 +877,23 @@ x_dirfd (DIR *dirp)//@;
 }
 } //@
 
+//@ #include <sys/stat.h>
+namespace libsh_treis::libc //@
+{ //@
+struct stat //@
+x_stat (const char *path)//@;
+{
+  struct stat result;
+
+  if (stat (path, &result) == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
