@@ -136,6 +136,20 @@ x_strerror_l (int errnum, locale_t locale)//@;
     } \
   while (false)
 
+// Добавляем по мере необходимости в функции
+#define THROW_ERRNO_MESSAGE(m) \
+  do \
+    { \
+      int saved_errno = errno; \
+      auto str = boost::stacktrace::to_string (boost::stacktrace::stacktrace ()); \
+      if (!str.empty ()) \
+        { \
+          str.pop_back (); \
+        } \
+      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + (m) + ": "s + x_strerror_l (saved_errno, (locale_t)0) + "\n" + str); \
+    } \
+  while (false)
+
 namespace libsh_treis //@
 { //@
 
@@ -887,7 +901,7 @@ x_stat (const char *path)//@;
 
   if (stat (path, &result) == -1)
     {
-      THROW_ERRNO;
+      THROW_ERRNO_MESSAGE (path);
     }
 
   return result;
