@@ -211,7 +211,11 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ #define LIBSH_TREIS_ASSERT(assertion) \
 //@   do \
 //@     { \
-//@       if (!(assertion)) \
+//@       if (assertion) \
+//@         { \
+//@           /* Пишем if именно в такой форме, чтобы сработал обычный contextual conversion to bool, а не operator! */ \
+//@         } \
+//@       else \
 //@         { \
 //@           fprintf (stderr, "%s", (libsh_treis::detail::program_invocation_name_reexported () + std::string (": ") + __PRETTY_FUNCTION__ + std::string (": assertion \"") + #assertion + std::string ("\" failed\n") + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())).c_str ()); \
 //@           exit (EXIT_FAILURE); \
