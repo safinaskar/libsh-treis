@@ -343,7 +343,7 @@ x_open2 (const char *path, int oflag)//@;
 
   if (result == -1)
     {
-      THROW_ERRNO;
+      THROW_ERRNO_MESSAGE (path);
     }
 
   return result;
@@ -362,7 +362,7 @@ x_open3_nunu (const char *path, int oflag, mode_t mode)//@;
 
   if (result == -1)
     {
-      THROW_ERRNO;
+      THROW_ERRNO_MESSAGE (path);
     }
 
   return result;
@@ -552,7 +552,7 @@ x_chdir (const char *path)//@;
 {
   if (chdir (path) == -1)
     {
-      THROW_ERRNO;
+      THROW_ERRNO_MESSAGE (path);
     }
 }
 } //@
@@ -691,7 +691,7 @@ x_execv_nunu (const char *path, const char *const argv[])//@;
 {
   execv (path, (char *const *)argv);
 
-  THROW_ERRNO;
+  THROW_ERRNO_MESSAGE (path);
 }
 } //@
 
@@ -703,7 +703,7 @@ x_execvp (const char *file, const char *const argv[])//@;
 {
   execvp (file, (char *const *)argv);
 
-  THROW_ERRNO;
+  THROW_ERRNO_MESSAGE (file);
 }
 } //@
 
@@ -765,7 +765,7 @@ x_unlink (const char *pathname)//@;
 {
   if (unlink (pathname) == -1)
     {
-      THROW_ERRNO;
+      THROW_ERRNO_MESSAGE (pathname);
     }
 }
 } //@
@@ -830,7 +830,7 @@ x_opendir (const char *dirname)//@;
 
   if (result == nullptr)
     {
-      THROW_ERRNO;
+      THROW_ERRNO_MESSAGE (dirname);
     }
 
   return result;
