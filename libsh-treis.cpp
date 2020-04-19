@@ -809,7 +809,7 @@ x_mkstemp (char *templ)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-x_clock_nanosleep (clockid_t clock_id, int flags, const struct timespec *request)//@;
+x_clock_nanosleep (clockid_t clock_id, int flags, const timespec *request)//@;
 {
   int err = clock_nanosleep (clock_id, flags, request, nullptr);
 
@@ -1038,23 +1038,11 @@ write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
 //@   int _fd;
 //@   int _exceptions;
 
+//@ public:
+
 //@   explicit fd (int f) noexcept : _fd (f), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   friend pipe_result
-//@   x_pipe (void);
-
-//@   friend fd
-//@   x_open_2 (const char *path, int oflag);
-
-//@   friend fd
-//@   x_open_3_nunu (const char *path, int oflag, mode_t mode);
-
-//@   friend fd
-//@   x_mkstemp (char *templ);
-
-//@ public:
 
 //@   ~fd (void) noexcept (false)
 //@   {
@@ -1198,14 +1186,11 @@ process_succeed (int status)//@;
 //@   FILE *_stream;
 //@   int _exceptions;
 
+//@ public:
+
 //@   explicit pipe_stream (FILE *stream) noexcept : _stream (stream), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   friend pipe_stream
-//@   x_popen (const char *command, const char *mode);
-
-//@ public:
 
 //@   ~pipe_stream (void) noexcept (false)
 //@   {
@@ -1297,14 +1282,11 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@   pid_t _pid;
 //@   int _exceptions;
 
+//@ public:
+
 //@   explicit process (pid_t pid) noexcept : _pid (pid), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   friend process
-//@   safe_fork (const std::function<void(void)> &func);
-
-//@ public:
 
 //@   ~process (void) noexcept (false)
 //@   {
@@ -1513,14 +1495,11 @@ build_path_find (std::string_view up, std::string_view down)//@;
 //@   DIR *_d;
 //@   int _exceptions;
 
+//@ public:
+
 //@   explicit directory (DIR *d) noexcept : _d (d), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
-
-//@   friend directory
-//@   x_opendir (const char *dirname);
-
-//@ public:
 
 //@   ~directory (void) noexcept (false)
 //@   {
