@@ -223,6 +223,23 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@     } \
 //@   while (false)
 
+//@ #include <span>
+//@ #include <cstddef>
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename T> std::span<const std::byte>
+//@ bytes (const T &x)
+//@ {
+//@   return std::span<const T> (&x, 1).as_bytes ();
+//@ }
+
+//@ template <typename T> std::span<std::byte>
+//@ writable_bytes (T &x)
+//@ {
+//@   return std::span<T> (&x, 1).as_writable_bytes ();
+//@ }
+//@ }
+
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
