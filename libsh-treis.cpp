@@ -243,14 +243,17 @@ x_write (int fildes, const void *buf, size_t nbyte)//@;
 }
 } //@
 
+// Возвращаем ssize_t, а не span и не пару span'ов, т. к. я не могу придумать, где можно применить x_read, кроме как в его обёртке read_repeatedly. Поэтому нет нужды изощряться с возвращаемым типом
 //@ #include <sys/types.h> // size_t, ssize_t
+//@ #include <span>
+//@ #include <cstddef>
 #include <unistd.h>
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-x_read (int fildes, void *buf, size_t nbyte)//@;
+x_read (int fildes, std::span<std::byte> buf)//@;
 {
-  ssize_t result = read (fildes, buf, nbyte);
+  ssize_t result = read (fildes, buf.data (), buf.size ());
 
   if (result == -1)
     {
@@ -955,28 +958,31 @@ xx_getchar_nunu (void)//@;
 
 // Такая функция пригодится (т. е. именно с таким API), если, скажем, нужно прочитать первые 1000 байт файла, чтобы узнать, текстовый ли этот файл
 // Необходимость повторять вызовы read может быть при чтении с терминала
-// Если nbyte равно нулю, read не вызывается ни разу
-//@ #include <sys/types.h> // size_t, ssize_t
+// Если buf.size () равно нулю, read не вызывается ни разу
+// Возвращаем std::span<std::byte>, т. к. именно это нужно в задаче чтения первых 1000 байт файла
+//@ #include <span>
+//@ #include <cstddef>
+#include <sys/types.h>
 namespace libsh_treis::libc //@
 { //@
-ssize_t //@
-read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+std::span<std::byte> //@
+read_repeatedly (int fildes, std::span<std::byte> buf)//@;
 {
-  ssize_t have_read = 0;
+  auto to_fill = buf;
 
-  while (have_read < (ssize_t)nbyte)
+  while (to_fill.size () > 0)
     {
-      ssize_t result_of_xread = x_read (fildes, (char *)buf + have_read, nbyte - have_read);
+      ssize_t result_of_x_read = x_read (fildes, to_fill);
 
-      if (result_of_xread == 0)
+      if (result_of_x_read == 0)
         {
           break;
         }
 
-      have_read += result_of_xread;
+      to_fill = to_fill.subspan (result_of_x_read);
     }
 
-  return have_read;
+  return buf.first (buf.size () - to_fill.size ());
 }
 } //@
 
@@ -987,7 +993,8 @@ namespace libsh_treis::libc //@
 bool //@
 x_read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 {
-  ssize_t have_read = read_repeatedly (fildes, buf, nbyte);
+  //ssize_t have_read = read_repeatedly (fildes, buf, nbyte);
+  ssize_t have_read = read_repeatedly (fildes, std::span<std::byte> ((std::byte *)buf, nbyte)).size ();
 
   if (have_read == (ssize_t)nbyte)
     {
