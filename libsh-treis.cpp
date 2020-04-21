@@ -227,16 +227,16 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ #include <cstddef>
 //@ namespace libsh_treis::tools
 //@ {
-//@ template <typename T> std::span<const std::byte>
+//@ template <typename T> std::span<const std::byte, sizeof T>
 //@ bytes (const T &x)
 //@ {
-//@   return std::span<const T> (&x, 1).as_bytes ();
+//@   return std::as_bytes (std::span<const T, 1> (&x, 1));
 //@ }
 
-//@ template <typename T> std::span<std::byte>
+//@ template <typename T> std::span<std::byte, sizeof T>
 //@ writable_bytes (T &x)
 //@ {
-//@   return std::span<T> (&x, 1).as_writable_bytes ();
+//@   return std::as_writable_bytes (std::span<T, 1> (&x, 1));
 //@ }
 //@ }
 
