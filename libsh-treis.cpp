@@ -5,7 +5,7 @@
 // 2018DECTMP
 
 // Сборка этой либы
-// - Написан на C++20, используются только две фичи из C++20: designated initializers и std::is_unbounded_array_v, проекты на этой либе должны использовать как минимум C++20
+// - Написан на C++20, проекты на этой либе должны использовать как минимум C++20
 // - Зависит от boost stacktrace. Причём от той версии, где поддерживается BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE и где есть boost::stacktrace::to_string (const boost::stacktrace::stacktrace &). В частности, 1.71 поддерживается, а 1.67 - нет
 // - Желательно указать переменную сборки к make BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE для включения более информативного backtrace'а
 
@@ -228,13 +228,13 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ namespace libsh_treis::tools
 //@ {
 //@ template <typename T> std::span<const std::byte, sizeof (T)>
-//@ bytes (const T &x)
+//@ any_as_bytes (const T &x)
 //@ {
 //@   return std::as_bytes (std::span<const T, 1> (&x, 1));
 //@ }
 
 //@ template <typename T> std::span<std::byte, sizeof (T)>
-//@ writable_bytes (T &x)
+//@ any_as_writable_bytes (T &x)
 //@ {
 //@   return std::as_writable_bytes (std::span<T, 1> (&x, 1));
 //@ }
@@ -243,13 +243,15 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
+//@ #include <span>
+//@ #include <cstddef>
 #include <unistd.h>
 namespace libsh_treis::libc //@
 { //@
 ssize_t //@
-x_write (int fildes, const void *buf, size_t nbyte)//@;
+x_write (int fildes, std::span<const std::byte> buf)//@;
 {
-  ssize_t result = write (fildes, buf, nbyte);
+  ssize_t result = write (fildes, buf.data (), buf.size ());
 
   if (result == -1)
     {
@@ -260,7 +262,7 @@ x_write (int fildes, const void *buf, size_t nbyte)//@;
 }
 } //@
 
-// Возвращаем ssize_t, а не span и не пару span'ов, т. к. я не могу придумать, где можно применить x_read, кроме как в его обёртке read_repeatedly. Поэтому нет нужды изощряться с возвращаемым типом
+// Возвращаем ssize_t, а не span и не пару span'ов, т. к. я не могу придумать, где можно применить x_read, кроме как в его обёртке read_repeatedly. Поэтому нет нужды изощряться с возвращаемым типом (то же для x_write)
 //@ #include <sys/types.h> // size_t, ssize_t
 //@ #include <span>
 //@ #include <cstddef>
@@ -1004,16 +1006,16 @@ read_repeatedly (int fildes, std::span<std::byte> buf)//@;
 } //@
 
 // Такая функция пригодится, если мы читаем блоки фиксированного размера из файла один за другим
-//@ #include <sys/types.h> // size_t, ssize_t
+//@ #include <span>
+//@ #include <cstddef>
 namespace libsh_treis::libc //@
 { //@
 bool //@
-x_read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+x_read_repeatedly (int fildes, std::span<std::byte> buf)//@;
 {
-  //ssize_t have_read = read_repeatedly (fildes, buf, nbyte);
-  ssize_t have_read = read_repeatedly (fildes, std::span<std::byte> ((std::byte *)buf, nbyte)).size ();
+  auto have_read = read_repeatedly (fildes, buf).size ();
 
-  if (have_read == (ssize_t)nbyte)
+  if (have_read == buf.size ())
     {
       return true;
     }
@@ -1027,31 +1029,31 @@ x_read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
 }
 } //@
 
-//@ #include <sys/types.h> // size_t, ssize_t
+//@ #include <span>
+//@ #include <cstddef>
 namespace libsh_treis::libc //@
 { //@
 void //@
-xx_read_repeatedly (int fildes, void *buf, size_t nbyte)//@;
+xx_read_repeatedly (int fildes, std::span<std::byte> buf)//@;
 {
-  if (!x_read_repeatedly (fildes, buf, nbyte))
+  if (!x_read_repeatedly (fildes, buf))
     {
       _LIBSH_TREIS_THROW_MESSAGE ("EOF");
     }
 }
 } //@
 
-// Если nbyte равно нулю, write не вызывается ни разу
-//@ #include <sys/types.h> // size_t, ssize_t
+// Если buf.size () равно нулю, write не вызывается ни разу
+//@ #include <span>
+//@ #include <cstddef>
 namespace libsh_treis::libc //@
 { //@
 void //@
-write_repeatedly (int fildes, const void *buf, size_t nbyte)//@;
+write_repeatedly (int fildes, std::span<const std::byte> buf)//@;
 {
-  ssize_t written = 0;
-
-  while (written != (ssize_t)nbyte)
+  while (buf.size () != 0)
     {
-      written += x_write (fildes, (const char *)buf + written, nbyte - written);
+      buf = buf.subspan (x_write (fildes, buf));
     }
 }
 } //@
@@ -1418,6 +1420,7 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ // ospan нельзя перемещать. Копировать можно, но на данный момент не реализовано
 //@ #include <cstddef>
 //@ #include <type_traits>
+//@ #include <utility>
 //@ namespace libsh_treis::tools
 //@ {
 //@ template <typename T> class ospan: libsh_treis::tools::not_movable
@@ -1436,6 +1439,9 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 
 //@   template <typename U> friend ospan<U>
 //@   make_ospan_for_overwrite (std::size_t size);
+
+//@   template <typename U> friend void
+//@   swap (ospan<U> &, ospan<U> &) noexcept;
 
 //@ public:
 //@   ~ospan (void)
@@ -1461,6 +1467,13 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@     return _size;
 //@   }
 //@ };
+
+//@ template <typename T> void
+//@ swap (ospan<T> &a, ospan<T> &b) noexcept
+//@ {
+//@   std::swap (a._ptr,  b._ptr);
+//@   std::swap (a._size, b._size);
+//@ }
 
 //@ template <typename T> ospan<T>
 //@ make_ospan (std::size_t size)
@@ -1557,3 +1570,35 @@ x_opendir (const char *dirname)//@;
   return directory (libsh_treis::libc::no_raii::x_opendir (dirname));
 }
 } //@
+
+//@ #include <span>
+//@ #include <cstddef>
+#include <string.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+span_memcmp (std::span<const std::byte> s1, std::span<const std::byte> s2)//@;
+{
+  LIBSH_TREIS_ASSERT (s1.size () == s2.size ());
+  return memcmp (s1.data (), s2.data (), s1.size ());
+}
+} //@
+
+//@ #include <span>
+//@ #include <cstddef>
+//@ #include <type_traits>
+//@ #include <utility>
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename T, typename U, typename F> void
+//@ zip (T &&a, U &&b, const F &f)
+//@ {
+//@   std::span<std::remove_reference_t<decltype (*std::data (std::forward<T> (a)))>> span_a = std::forward<T> (a);
+//@   std::span<std::remove_reference_t<decltype (*std::data (std::forward<U> (b)))>> span_b = std::forward<U> (b);
+//@   LIBSH_TREIS_ASSERT (span_a.size () == span_b.size ());
+//@   for (std::size_t i = 0; i != span_a.size (); ++i)
+//@     {
+//@       f (span_a[i], span_b[i]);
+//@     }
+//@ }
+//@ }
