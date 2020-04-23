@@ -1335,9 +1335,9 @@ x_pipe (void)//@;
 }
 } //@
 
+// Вызывающая сторона должна сама flush'нуть C stdio и C++ streams перед вызовом этой функции. В том числе flush'нуть C stderr, т. к. он используется моей либой (если туда был вывод без '\n' в конце)
 //@ #include <sys/types.h>
 #include <stdlib.h>
-// Вызывающая сторона должна сама flush'нуть C stdio и C++ streams перед вызовом этой функции. В том числе flush'нуть C stderr, т. к. он используется моей либой (если туда был вывод без '\n' в конце)
 namespace libsh_treis::libc::no_raii //@
 { //@
 pid_t //@
@@ -1647,6 +1647,19 @@ span_memcmp (std::span<const std::byte> s1, std::span<const std::byte> s2)//@;
 {
   LIBSH_TREIS_ASSERT (s1.size () == s2.size ());
   return memcmp (s1.data (), s2.data (), s1.size ());
+}
+} //@
+
+//@ #include <span>
+//@ #include <cstddef>
+#include <string.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+span_memcpy (std::span<std::byte> dest, std::span<const std::byte> src)//@;
+{
+  LIBSH_TREIS_ASSERT (dest.size () == src.size ());
+  memcpy (dest.data (), src.data (), dest.size ());
 }
 } //@
 
