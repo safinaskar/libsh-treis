@@ -463,15 +463,16 @@ x_vprintf (const char *format, va_list ap)//@;
 }
 } //@
 
-//@ #include <sys/types.h> // size_t, ssize_t
+// Результат vsnprintf может быть больше длины s, поэтому возвращать span нельзя
+//@ #include <span>
 //@ #include <stdarg.h>
 #include <stdio.h>
 namespace libsh_treis::libc //@
 { //@
 int //@
-x_vsnprintf (char *s, size_t n, const char *format, va_list ap)//@;
+x_vsnprintf (std::span<char> s, const char *format, va_list ap)//@;
 {
-  int result = vsnprintf (s, n, format, ap);
+  int result = vsnprintf (s.data (), s.size (), format, ap);
 
   if (result < 0)
     {
@@ -542,16 +543,16 @@ x_printf (const char *format, ...)//@;
 }
 } //@
 
-//@ #include <sys/types.h> // size_t, ssize_t
+//@ #include <span>
 #include <stdarg.h>
 namespace libsh_treis::libc //@
 { //@
 int //@
-x_snprintf (char *s, size_t n, const char *format, ...)//@;
+x_snprintf (std::span<char> s, const char *format, ...)//@;
 {
   va_list ap;
   va_start (ap, format);
-  int result = x_vsnprintf (s, n, format, ap);
+  int result = x_vsnprintf (s, format, ap);
   va_end (ap);
   return result;
 }
