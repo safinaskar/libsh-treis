@@ -935,6 +935,32 @@ x_stat (const char *path)//@;
 }
 } //@
 
+// Стандартный fread эквивалентен read_repeatedly в том смысле, что он читает всё, пока не упрётся в ошибку или EOF. То есть некий fread_repeatedly уже не нужен
+// Всегда передаём 1 в качестве второго аргумента (size) в fread. Чтобы можно было точно понять, сколько именно байт прочитано. Возможно, это будет иметь некие последствия для производительности. Но если вам важна производительность, вы просто не должны использовать fread вовсе, а должны использовать самописную буферизацию
+// x_fread аналогичен read_repeatedly, поэтому тоже возвращает std::span<std::byte>
+// Сбрасывает err flag
+//@ #include <span>
+//@ #include <cstddef>
+//@ #include <stdio.h>
+#include <stddef.h>
+namespace libsh_treis::libc //@
+{ //@
+std::span<std::byte> //@
+x_fread (std::span<std::byte> buf, FILE *stream)//@;
+{
+  clearerr (stream);
+
+  size_t result = fread (buf.data (), 1, buf.size (), stream);
+
+  if (ferror (stream))
+    {
+      THROW_ERRNO;
+    }
+
+  return std::span<std::byte> (buf.data (), result);
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
@@ -970,6 +996,45 @@ xx_getchar_nunu (void)//@;
     }
 
   return (char)(unsigned char)result;
+}
+} //@
+
+//@ #include <span>
+//@ #include <cstddef>
+//@ #include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+bool //@
+xx_fread (std::span<std::byte> buf, FILE *stream)//@;
+{
+  auto have_read = x_fread (buf, stream).size ();
+
+  if (have_read == buf.size ())
+    {
+      return true;
+    }
+
+  if (have_read == 0)
+    {
+      return false;
+    }
+
+  _LIBSH_TREIS_THROW_MESSAGE ("Partial data");
+}
+} //@
+
+//@ #include <span>
+//@ #include <cstddef>
+//@ #include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+xxx_fread (std::span<std::byte> buf, FILE *stream)//@;
+{
+  if (!xx_fread (buf, stream))
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("EOF");
+    }
 }
 } //@
 
