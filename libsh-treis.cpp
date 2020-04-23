@@ -1532,6 +1532,20 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@   {
 //@     return _size;
 //@   }
+
+//@   const T &
+//@   operator[] (std::size_t i) const noexcept
+//@   {
+//@     assert (i < _size);
+//@     return _ptr[i];
+//@   }
+
+//@   T &
+//@   operator[] (std::size_t i) noexcept
+//@   {
+//@     assert (i < _size);
+//@     return _ptr[i];
+//@   }
 //@ };
 
 //@ template <typename T> void
@@ -1662,22 +1676,3 @@ span_memcpy (std::span<std::byte> dest, std::span<const std::byte> src)//@;
   memcpy (dest.data (), src.data (), dest.size ());
 }
 } //@
-
-//@ #include <span>
-//@ #include <cstddef>
-//@ #include <type_traits>
-//@ #include <utility>
-//@ namespace libsh_treis::tools
-//@ {
-//@ template <typename T, typename U, typename F> void
-//@ zip (T &&a, U &&b, const F &f)
-//@ {
-//@   std::span<std::remove_reference_t<decltype (*std::data (std::forward<T> (a)))>> span_a = std::forward<T> (a);
-//@   std::span<std::remove_reference_t<decltype (*std::data (std::forward<U> (b)))>> span_b = std::forward<U> (b);
-//@   LIBSH_TREIS_ASSERT (span_a.size () == span_b.size ());
-//@   for (std::size_t i = 0; i != span_a.size (); ++i)
-//@     {
-//@       f (span_a[i], span_b[i]);
-//@     }
-//@ }
-//@ }
