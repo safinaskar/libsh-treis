@@ -50,6 +50,7 @@
 // - Выбрал названия в стиле "x_write", а не "xwrite", потому что иначе обёртки для xcb выглядели бы так: xxcb_ewmh_send_client_message или так: xewmh_send_client_message, а это некрасиво
 // - Даже no_raii-функции exception-safe, например, libsh_treis::xcb::no_raii::x_connect делает xcb_disconnect в случае ошибки
 // - Вещи, не имеющие особого отношения к сути libsh_treis, но которые могут пригодиться в моём коде, вынесены в libsh_treis::tools. По сути это аналог Google Abseil, который я не стал выносить в отдельную либу, т. к. я всё равно никому не показываю свой код
+// - Все функции C, которые фактически принимают span, должны быть обёрнуты с использованием span. Например, read, write, readv, writev, poll, memcpy
 
 // Необёрнутые функции и функции, которые не надо использовать
 // - getc не обёрнуто, т. к. работает так же, как и fgetc
@@ -228,13 +229,13 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ namespace libsh_treis::tools
 //@ {
 //@ template <typename T> std::span<const std::byte, sizeof (T)>
-//@ any_as_bytes (const T &x)
+//@ any_as_bytes (const T &x) noexcept
 //@ {
 //@   return std::as_bytes (std::span<const T, 1> (&x, 1));
 //@ }
 
 //@ template <typename T> std::span<std::byte, sizeof (T)>
-//@ any_as_writable_bytes (T &x)
+//@ any_as_writable_bytes (T &x) noexcept
 //@ {
 //@   return std::as_writable_bytes (std::span<T, 1> (&x, 1));
 //@ }
@@ -1043,7 +1044,7 @@ xxx_fread (std::span<std::byte> buf, FILE *stream)//@;
 
 // Такая функция пригодится (т. е. именно с таким API), если, скажем, нужно прочитать первые 1000 байт файла, чтобы узнать, текстовый ли этот файл
 // Необходимость повторять вызовы read может быть при чтении с терминала
-// Если buf.size () равно нулю, read не вызывается ни разу
+// Если buf.size () равен нулю, read не вызывается ни разу
 // Возвращаем std::span<std::byte>, т. к. именно это нужно в задаче чтения первых 1000 байт файла
 //@ #include <span>
 //@ #include <cstddef>
@@ -1657,7 +1658,7 @@ x_opendir (const char *dirname)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-span_memcmp (std::span<const std::byte> s1, std::span<const std::byte> s2)//@;
+span_memcmp (std::span<const std::byte> s1, std::span<const std::byte> s2) noexcept//@;
 {
   LIBSH_TREIS_ASSERT (s1.size () == s2.size ());
   return memcmp (s1.data (), s2.data (), s1.size ());
@@ -1670,7 +1671,7 @@ span_memcmp (std::span<const std::byte> s1, std::span<const std::byte> s2)//@;
 namespace libsh_treis::libc //@
 { //@
 void //@
-span_memcpy (std::span<std::byte> dest, std::span<const std::byte> src)//@;
+span_memcpy (std::span<std::byte> dest, std::span<const std::byte> src) noexcept//@;
 {
   LIBSH_TREIS_ASSERT (dest.size () == src.size ());
   memcpy (dest.data (), src.data (), dest.size ());
