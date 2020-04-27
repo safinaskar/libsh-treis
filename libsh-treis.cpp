@@ -151,7 +151,7 @@ x_strerror_l (int errnum, locale_t locale)//@;
     } \
   while (false)
 
-namespace libsh_treis //@
+namespace libsh_treis::tools //@
 { //@
 
 bool //@
@@ -1348,7 +1348,7 @@ safe_fork (const std::function<void(void)> &func)//@;
 
   if (result == 0)
     {
-      _Exit (libsh_treis::main_helper (func));
+      _Exit (libsh_treis::tools::main_helper (func));
     }
 
   return result;
