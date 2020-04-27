@@ -1154,7 +1154,7 @@ write_repeatedly (int fildes, std::span<const std::byte> buf)//@;
 //@   }
 
 //@   int
-//@   get (void) const noexcept
+//@   resource (void) const noexcept
 //@   {
 //@     return _fd;
 //@   }
@@ -1302,7 +1302,7 @@ process_succeed (int status)//@;
 //@   }
 
 //@   FILE *
-//@   get (void) const noexcept
+//@   resource (void) const noexcept
 //@   {
 //@     return _stream;
 //@   }
@@ -1398,7 +1398,7 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@   }
 
 //@   pid_t
-//@   get (void) const noexcept
+//@   resource (void) const noexcept
 //@   {
 //@     return _pid;
 //@   }
@@ -1424,7 +1424,7 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 
   process *ptr = proc.release ();
 
-  int result = x_waitpid_status (ptr->get (), options);
+  int result = x_waitpid_status (ptr->resource (), options);
 
   operator delete (ptr);
 
@@ -1636,7 +1636,7 @@ build_path_find (std::string_view up, std::string_view down)//@;
 //@   }
 
 //@   DIR *
-//@   get (void) const noexcept
+//@   resource (void) const noexcept
 //@   {
 //@     return _d;
 //@   }
