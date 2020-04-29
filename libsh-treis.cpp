@@ -1570,24 +1570,6 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ }
 //@ }
 
-//@ namespace libsh_treis::tools
-//@ {
-//@ template <typename C, typename F> bool
-//@ has_front_and_nunu (const C &c, const F &f)
-//@ {
-//@   return !c.empty () && f (c.front ());
-//@ }
-//@ }
-
-//@ namespace libsh_treis::tools
-//@ {
-//@ template <typename C, typename F> bool
-//@ has_back_and_nunu (const C &c, const F &f)
-//@ {
-//@   return !c.empty () && f (c.back ());
-//@ }
-//@ }
-
 // Один из возможных алгоритмов правильного соединения компонентов пути. Используется тот алгоритм, который использует GNU find
 //@ #include <string_view>
 namespace libsh_treis::tools //@
