@@ -964,6 +964,58 @@ x_fread (std::span<std::byte> buf, FILE *stream)//@;
 }
 } //@
 
+//@ #include <time.h>
+namespace libsh_treis::libc //@
+{ //@
+tm //@
+x_gmtime_r (time_t t)//@;
+{
+  tm result;
+
+  if (gmtime_r (&t, &result) == nullptr)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
+// Вы должны позаботиться, чтобы эта функция всегда писала непустую строку
+//@ #include <stddef.h>
+//@ #include <time.h>
+//@ #include <span>
+namespace libsh_treis::libc //@
+{ //@
+size_t //@
+x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
+{
+  size_t result = strftime (s.data (), s.size (), format, &tm);
+
+  if (result == 0)
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("Buffer overflow");
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_mkdir (const char *path, mode_t mode)//@;
+{
+  if (mkdir (path, mode) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
