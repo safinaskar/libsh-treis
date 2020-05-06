@@ -385,7 +385,7 @@ x_open_2 (const char *path, int oflag)//@;
 namespace libsh_treis::libc::no_raii //@
 { //@
 int //@
-x_open_3_nunu (const char *path, int oflag, mode_t mode)//@;
+x_open_3 (const char *path, int oflag, mode_t mode)//@;
 {
   int result = open (path, oflag, mode);
 
@@ -1223,9 +1223,9 @@ x_open_2 (const char *path, int oflag)//@;
 }
 
 fd //@
-x_open_3_nunu (const char *path, int oflag, mode_t mode)//@;
+x_open_3 (const char *path, int oflag, mode_t mode)//@;
 {
-  return fd (libsh_treis::libc::no_raii::x_open_3_nunu (path, oflag, mode));
+  return fd (libsh_treis::libc::no_raii::x_open_3 (path, oflag, mode));
 }
 
 fd //@
