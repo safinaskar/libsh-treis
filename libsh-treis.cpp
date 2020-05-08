@@ -1029,6 +1029,24 @@ x_mkdtemp (char *templ)//@;
 }
 } //@
 
+// Не вызывайте с command == nullptr
+#include <stdlib.h>
+namespace libsh_treis::libc //@
+{ //@
+int //@
+x_system (const char *command)//@;
+{
+  int result = system (command);
+
+  if (result == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
