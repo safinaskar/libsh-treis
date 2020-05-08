@@ -1016,6 +1016,19 @@ x_mkdir (const char *path, mode_t mode)//@;
 }
 } //@
 
+#include <stdlib.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_mkdtemp (char *templ)//@;
+{
+  if (mkdtemp (templ) == nullptr)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
