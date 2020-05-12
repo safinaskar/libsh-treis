@@ -215,7 +215,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@     { \
 //@       if (assertion) \
 //@         { \
-//@           /* Пишем if именно в такой форме, чтобы сработал обычный contextual conversion to bool, а не operator! */ \
+//@           /* Пишем if именно в такой форме, чтобы сработал обычный contextual conversion to bool, а не "operator!" */ \
 //@         } \
 //@       else \
 //@         { \
@@ -466,6 +466,7 @@ x_vprintf (const char *format, va_list ap)//@;
 } //@
 
 // Результат vsnprintf может быть больше длины s, поэтому возвращать span нельзя
+// Эту функцию нужно использовать, если в вашем случае переполнение не является ошибкой, например, потому что вы передаёте в качестве s span длины 0, чтобы узнать длину вывода. Во всех остальных случаях нужно использовать xx_vsnprintf. Если вы передаёте span длины 0, нужно использовать x_vsnprintf
 //@ #include <span>
 //@ #include <stdarg.h>
 #include <stdio.h>
@@ -987,7 +988,7 @@ x_gmtime_r (time_t t)//@;
 //@ #include <span>
 namespace libsh_treis::libc //@
 { //@
-size_t //@
+std::span<char> //@
 x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
 {
   size_t result = strftime (s.data (), s.size (), format, &tm);
@@ -997,7 +998,7 @@ x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
       _LIBSH_TREIS_THROW_MESSAGE ("Buffer overflow");
     }
 
-  return result;
+  return std::span<char> (s.data (), result);
 }
 } //@
 
@@ -1121,6 +1122,39 @@ xxx_fread (std::span<std::byte> buf, FILE *stream)//@;
     {
       _LIBSH_TREIS_THROW_MESSAGE ("EOF");
     }
+}
+} //@
+
+//@ #include <stdarg.h>
+//@ #include <span>
+namespace libsh_treis::libc //@
+{ //@
+std::span<char> //@
+xx_vsnprintf (std::span<char> s, const char *format, va_list ap)//@;
+{
+  int result = x_vsnprintf (s, format, ap);
+
+  if (result >= std::ssize (s))
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("Overflow");
+    }
+
+  return std::span<char> (s.data (), result);
+}
+} //@
+
+//@ #include <span>
+#include <stdarg.h>
+namespace libsh_treis::libc //@
+{ //@
+std::span<char> //@
+xx_snprintf (std::span<char> s, const char *format, ...)//@;
+{
+  va_list ap;
+  va_start (ap, format);
+  std::span<char> result = xx_vsnprintf (s, format, ap);
+  va_end (ap);
+  return result;
 }
 } //@
 
