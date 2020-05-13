@@ -1247,7 +1247,6 @@ write_repeatedly (int fildes, std::span<const std::byte> buf)//@;
 //@ #include <unistd.h>
 //@ namespace libsh_treis::libc
 //@ {
-//@ struct pipe_result;
 //@ class fd: libsh_treis::tools::not_movable
 //@ {
 //@   int _fd;
