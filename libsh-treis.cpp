@@ -348,9 +348,10 @@ x_getdelim (char **lineptr, size_t *n, int delimiter, FILE *stream)//@;
 } //@
 
 // Сбрасывает err flag перед вызовом функции из libc
+// no_raii, потому что нужен free
 //@ #include <sys/types.h> // size_t, ssize_t
 //@ #include <stdio.h>
-namespace libsh_treis::libc //@
+namespace libsh_treis::libc::no_raii //@
 { //@
 ssize_t //@
 x_getline (char **lineptr, size_t *n, FILE *stream)//@;
