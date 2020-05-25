@@ -327,9 +327,11 @@ x_getchar_nunu (void)//@;
 } //@
 
 // Сбрасывает err flag перед вызовом getdelim
+// По-хорошему надо вернуть std::unique_ptr<std::span<char>>, но я решил возвращать просто ssize_t, т. к. в пользовательском коде я всё равно вряд ли буду вызывать эту функцию. Использоваться она будет лишь для дальнейших обёрток, а там важна максимальная производительность
+// no_raii, потому что нужен free
 //@ #include <sys/types.h> // size_t, ssize_t
 //@ #include <stdio.h>
-namespace libsh_treis::libc //@
+namespace libsh_treis::libc::no_raii //@
 { //@
 ssize_t //@
 x_getdelim (char **lineptr, size_t *n, int delimiter, FILE *stream)//@;
@@ -348,7 +350,6 @@ x_getdelim (char **lineptr, size_t *n, int delimiter, FILE *stream)//@;
 } //@
 
 // Сбрасывает err flag перед вызовом функции из libc
-// no_raii, потому что нужен free
 //@ #include <sys/types.h> // size_t, ssize_t
 //@ #include <stdio.h>
 namespace libsh_treis::libc::no_raii //@
