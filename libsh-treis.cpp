@@ -1050,6 +1050,36 @@ x_system (const char *command)//@;
 }
 } //@
 
+//@ #include <stdio.h>
+namespace libsh_treis::libc::no_raii //@
+{ //@
+FILE * //@
+x_fopen (const char *pathname, const char *mode)//@;
+{
+  FILE *result = fopen (pathname, mode);
+
+  if (result == nullptr)
+    {
+      THROW_ERRNO_MESSAGE (pathname);
+    }
+
+  return result;
+}
+} //@
+
+//@ #include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_fclose (FILE *stream)//@;
+{
+  if (fclose (stream) == EOF)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@;
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
@@ -1255,7 +1285,6 @@ write_repeatedly (int fildes, std::span<const std::byte> buf)//@;
 //@   int _exceptions;
 
 //@ public:
-
 //@   explicit fd (int f) noexcept : _fd (f), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
@@ -1403,7 +1432,6 @@ process_succeed (int status)//@;
 //@   int _exceptions;
 
 //@ public:
-
 //@   explicit pipe_stream (FILE *stream) noexcept : _stream (stream), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
@@ -1499,7 +1527,6 @@ x_waitpid_status (pid_t pid, int options)//@;
 //@   int _exceptions;
 
 //@ public:
-
 //@   explicit process (pid_t pid) noexcept : _pid (pid), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
@@ -1719,7 +1746,6 @@ build_path_find (std::string_view up, std::string_view down)//@;
 //@   int _exceptions;
 
 //@ public:
-
 //@   explicit directory (DIR *d) noexcept : _d (d), _exceptions (std::uncaught_exceptions ())
 //@   {
 //@   }
@@ -1776,5 +1802,47 @@ span_memcpy (std::span<std::byte> dest, std::span<const std::byte> src) noexcept
 {
   LIBSH_TREIS_ASSERT (dest.size () == src.size ());
   memcpy (dest.data (), src.data (), dest.size ());
+}
+} //@
+
+//@ #include <stdio.h>
+//@ namespace libsh_treis::libc
+//@ {
+//@ class fp: libsh_treis::tools::not_movable
+//@ {
+//@   FILE *_fp;
+//@   int _exceptions;
+//@
+//@ public:
+//@   explicit fp (FILE *f) noexcept : _fp (f), _exceptions (std::uncaught_exceptions ())
+//@   {
+//@   }
+//@
+//@   ~fp (void) noexcept (false)
+//@   {
+//@     if (std::uncaught_exceptions () == _exceptions)
+//@       {
+//@         x_fclose (_fp);
+//@       }
+//@     else
+//@       {
+//@         fclose (_fp);
+//@       }
+//@   }
+//@
+//@   FILE *
+//@   resource (void) const noexcept
+//@   {
+//@     return _fp;
+//@   }
+//@ };
+//@ }
+
+namespace libsh_treis::libc //@
+{ //@
+fp //@
+x_fopen (const char *pathname, const char *mode)//@;
+{
+  return fp (libsh_treis::libc::no_raii::x_fopen (pathname, mode));
 }
 } //@
