@@ -243,7 +243,9 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ }
 
 // Класс поддерживает инвариант: строка не содержит нулевых байт. Если будет добавлен новый способ создания строки, и вы сможете создать с его помощью строку с нулевыми байтами, вы получаете UB
+// Не было попытки добавить все способы конвертации из cstring_span и в cstring_span
 //@ #include <cstddef>
+//@ #include <span>
 //@ namespace libsh_treis::tools
 //@ {
 //@ class cstring_span
@@ -266,6 +268,12 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@   c_str (void) const noexcept
 //@   {
 //@     return _data;
+//@   }
+//@
+//@   std::span<char>
+//@   span_nunu (void) const noexcept
+//@   {
+//@     return std::span<char> (_data, _size);
 //@   }
 //@ };
 //@ }
