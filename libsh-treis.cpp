@@ -155,7 +155,6 @@ x_strerror_l (int errnum, locale_t locale)//@;
 
 namespace libsh_treis::tools //@
 { //@
-
 bool //@
 is_successful (const std::function<void(void)> &func) noexcept//@;
 {
@@ -259,6 +258,9 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@   friend cstring_span
 //@   make_cstring_span (char *, std::size_t);
 //@
+//@   friend cstring_span
+//@   make_cstring_span_unsafe (char *, std::size_t);
+//@
 //@ public:
 //@   char *
 //@   c_str (void) const noexcept
@@ -282,6 +284,19 @@ make_cstring_span (char *data, std::size_t size)//@;
         }
     }
 
+  return cstring_span (data, size);
+}
+} //@
+
+//@ #include <cstddef>
+#include <assert.h>
+#include <string.h>
+namespace libsh_treis::tools //@
+{ //@
+cstring_span //@
+make_cstring_span_unsafe (char *data, std::size_t size) noexcept//@;
+{
+  assert (strlen (data) == size);
   return cstring_span (data, size);
 }
 } //@
@@ -1034,7 +1049,7 @@ x_gmtime_r (time_t t)//@;
 //@ #include <span>
 namespace libsh_treis::libc //@
 { //@
-std::span<char> //@
+cstring_span //@
 x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
 {
   size_t result = strftime (s.data (), s.size (), format, &tm);
@@ -1044,7 +1059,7 @@ x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
       _LIBSH_TREIS_THROW_MESSAGE ("Buffer overflow");
     }
 
-  return std::span<char> (s.data (), result);
+  return make_cstring_span_unsafe (s.data (), result);
 }
 } //@
 
