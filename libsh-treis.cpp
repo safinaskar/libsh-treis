@@ -259,7 +259,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@   make_cstring_span (char *, std::size_t);
 //@
 //@   friend cstring_span
-//@   make_cstring_span_unsafe (char *, std::size_t);
+//@   make_cstring_span_unsafe (char *, std::size_t) noexcept;
 //@
 //@ public:
 //@   char *
@@ -720,7 +720,7 @@ x_pipe (void)//@;
       THROW_ERRNO;
     }
 
-  return { .readable = result[0], .writable = result[1] };
+  return {.readable = result[0], .writable = result[1]};
 }
 } //@
 
@@ -1049,7 +1049,7 @@ x_gmtime_r (time_t t)//@;
 //@ #include <span>
 namespace libsh_treis::libc //@
 { //@
-cstring_span //@
+libsh_treis::tools::cstring_span //@
 x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
 {
   size_t result = strftime (s.data (), s.size (), format, &tm);
@@ -1059,7 +1059,7 @@ x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
       _LIBSH_TREIS_THROW_MESSAGE ("Buffer overflow");
     }
 
-  return make_cstring_span_unsafe (s.data (), result);
+  return libsh_treis::tools::make_cstring_span_unsafe (s.data (), result);
 }
 } //@
 
@@ -1538,7 +1538,7 @@ x_pipe (void)//@;
 {
   auto result = libsh_treis::libc::no_raii::x_pipe ();
 
-  return { .readable = std::unique_ptr<fd> (new fd (result.readable)), .writable = std::unique_ptr<fd> (new fd (result.writable)) };
+  return {.readable = std::unique_ptr<fd> (new fd (result.readable)), .writable = std::unique_ptr<fd> (new fd (result.writable))};
 }
 } //@
 
