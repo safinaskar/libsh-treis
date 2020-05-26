@@ -243,6 +243,49 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@ }
 //@ }
 
+// Класс поддерживает инвариант: строка не содержит нулевых байт. Если будет добавлен новый способ создания строки, и вы сможете создать с его помощью строку с нулевыми байтами, вы получаете UB
+//@ #include <cstddef>
+//@ namespace libsh_treis::tools
+//@ {
+//@ class cstring_span
+//@ {
+//@   char *_data;
+//@   std::size_t _size;
+//@
+//@   explicit cstring_span (char *data, std::size_t size) noexcept : _data (data), _size (size)
+//@   {
+//@   }
+//@
+//@   friend cstring_span
+//@   make_cstring_span (char *, std::size_t);
+//@
+//@ public:
+//@   char *
+//@   c_str (void) const noexcept
+//@   {
+//@     return _data;
+//@   }
+//@ };
+//@ }
+
+//@ #include <cstddef>
+namespace libsh_treis::tools //@
+{ //@
+cstring_span //@
+make_cstring_span (char *data, std::size_t size)//@;
+{
+  for (std::ptrdiff_t i = 0; i != (std::ptrdiff_t)size; ++i)
+    {
+      if (data[i] == '\0')
+        {
+          _LIBSH_TREIS_THROW_MESSAGE ("Embedded null bytes");
+        }
+    }
+
+  return cstring_span (data, size);
+}
+} //@
+
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
@@ -1847,3 +1890,50 @@ x_fopen (const char *pathname, const char *mode)//@;
   return fp (libsh_treis::libc::no_raii::x_fopen (pathname, mode));
 }
 } //@
+
+//@ #include <stddef.h>
+//@ #include <stdio.h>
+//@ #include <stdlib.h>
+//@ #include <sys/types.h>
+//@ #include <memory>
+//@ namespace libsh_treis::libc
+//@ {
+//@ class getline_buffer: libsh_treis::tools::not_movable
+//@ {
+//@   char *line;
+//@   size_t n;
+//@
+//@ public:
+//@   getline_buffer (void) noexcept : line (nullptr)
+//@   {
+//@   }
+//@
+//@   ~getline_buffer (void)
+//@   {
+//@     free (line);
+//@   }
+//@
+//@   // Пока в моих задачах мне было нужно лишь следующее:
+//@   // - getline, а не getdelim
+//@   // - Проверка на наличие нулевых байтов (внимание! сейчас у меня именно getline, а не getdelim, а значит, delimiter не может быть '\0'; если буду использовать getdelim, подумать об этом)
+//@   // - Выкидывание завершающего delimiter'а (если в конце файла нет delimiter'а, то не бросаем исключение для совместимости с виндовыми практиками)
+//@   std::unique_ptr<libsh_treis::tools::cstring_span>
+//@   getline (FILE *stream)
+//@   {
+//@     ssize_t result = libsh_treis::libc::no_raii::x_getline (&line, &n, stream);
+//@
+//@     if (result == -1)
+//@       {
+//@         return nullptr;
+//@       }
+//@
+//@     if (line[result - 1] == '\n')
+//@       {
+//@         line[result - 1] = '\0';
+//@         --result;
+//@       }
+//@
+//@     return std::unique_ptr<libsh_treis::tools::cstring_span> (new auto (libsh_treis::tools::make_cstring_span (line, result)));
+//@   }
+//@ };
+//@ }
