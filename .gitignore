@@ -1,6 +1,7 @@
 .*.kate-swp
 
 *.o
+*.a
 
 /libsh-treis.hpp
 /gnu-source.hpp
