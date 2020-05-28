@@ -25,4 +25,4 @@ gnu-source.o: gnu-source.cpp gnu-source.hpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++2a -c $<
 
 lib.a: libsh-treis.o gnu-source.o
-	rm -f $@; ar rD $@ $^ || { rm -f $@; exit 1; }
+	rm -f $@; ar rsD $@ $^ || { rm -f $@; exit 1; }
