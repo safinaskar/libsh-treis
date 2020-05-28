@@ -9,11 +9,13 @@ BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
 
 all: lib.a
 
+.DELETE_ON_ERROR:
+
 libsh-treis.hpp: libsh-treis.cpp
-	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@ || { rm -f $@; exit 1; }
+	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@
 
 gnu-source.hpp: gnu-source.cpp
-	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@ || { rm -f $@; exit 1; }
+	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@
 
 libsh-treis.o: libsh-treis.cpp libsh-treis.hpp gnu-source.hpp
 	if [ -n '$(BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE)' ]; then \
@@ -26,4 +28,4 @@ gnu-source.o: gnu-source.cpp gnu-source.hpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++2a -c $<
 
 lib.a: libsh-treis.o gnu-source.o
-	rm -f $@; $(AR) rcsD $@ $^ || { rm -f $@; exit 1; }
+	rm -f $@ && $(AR) rcsD $@ $^
