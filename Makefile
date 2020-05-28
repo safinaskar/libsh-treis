@@ -6,7 +6,7 @@ CXXFLAGS ?= -O3 -g -Wall -Wextra -pedantic
 LDFLAGS ?=
 BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
 
-all: libsh-treis.o gnu-source.o
+all: lib.a
 
 libsh-treis.hpp: libsh-treis.cpp
 	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@ || { rm -f $@; exit 1; }
@@ -20,8 +20,9 @@ libsh-treis.o: libsh-treis.cpp libsh-treis.hpp gnu-source.hpp
 	else \
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++2a -c $<; \
 	fi
-	touch stamp
 
 gnu-source.o: gnu-source.cpp gnu-source.hpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++2a -c $<
-	touch stamp
+
+lib.a: libsh-treis.o gnu-source.o
+	rm -f $@; ar rD $@ $^ || { rm -f $@; exit 1; }
