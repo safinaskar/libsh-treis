@@ -1,6 +1,7 @@
 export
 
 CXX ?= c++
+AR ?= ar
 CPPFLAGS ?= -DNDEBUG
 CXXFLAGS ?= -O3 -g -Wall -Wextra -pedantic
 LDFLAGS ?=
@@ -25,4 +26,4 @@ gnu-source.o: gnu-source.cpp gnu-source.hpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++2a -c $<
 
 lib.a: libsh-treis.o gnu-source.o
-	rm -f $@; ar rsD $@ $^ || { rm -f $@; exit 1; }
+	rm -f $@; $(AR) rsD $@ $^ || { rm -f $@; exit 1; }
