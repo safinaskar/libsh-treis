@@ -1,0 +1,49 @@
+#!/bin/bash
+
+{
+  set -e
+  set -o pipefail
+  shopt -s inherit_errexit
+
+  [ $# -lt 2 ] && echo "Usage: ${0##*/} SOURCE COMPILER [FLAG]..." >&2 && exit 1
+
+  SOURCE="$1"
+  shift
+
+  # Из-за багов gcc и clang использовать -MM -MG невозможно
+
+  my_grep(){
+    if grep "$@"; then
+      :
+    else
+      if [ $? = 1 ]; then
+        :
+      else
+        return 2
+      fi
+    fi
+  }
+
+  process(){
+    local REGEX='^ *# *include +"([^/].*)" *$'
+    my_grep -E "$REGEX" "$1" | sed -E "s~$REGEX~\\1~" | while read -r NON_LOCAL_INCLUDE; do
+      {
+        local INCLUDE="$NON_LOCAL_INCLUDE"
+        if printf '%s\n' "$1" | grep -q /; then
+          local FULL="${1%/*}/$INCLUDE"
+        else
+          local FULL="$INCLUDE"
+        fi
+        make "$FULL"
+        process "$FULL"
+        :
+      } < /dev/null
+      :
+    done
+    :
+  }
+
+  process "$SOURCE"
+  "$@" -c "$SOURCE"
+  exit 0
+}
