@@ -19,6 +19,7 @@ libsh-treis.hpp: libsh-treis.cpp
 gnu-source.hpp: gnu-source.cpp
 	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@
 
+# Похоже, все остальные сорцы собираются без -DBOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE, и это плохо
 libsh-treis.o: libsh-treis.cpp FORCE
 	if [ -n '$(BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE)' ]; then \
 		./compile $< $(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++2a -DBOOST_STACKTRACE_USE_BACKTRACE -DBOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE=\"'$(BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE)'\" ; \
