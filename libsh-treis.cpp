@@ -1450,14 +1450,14 @@ x_mkstemp (char *templ)//@;
 
 //@   T result;
 
-//@   auto [ptr, ec] = std::from_chars (s.cbegin (), s.cend (), result);
+//@   auto [ptr, ec] = std::from_chars (s.data (), s.data () + s.size (), result);
 
 //@   if (ec != std::errc ())
 //@     {
 //@       _LIBSH_TREIS_THROW_MESSAGE ("Not a valid number (std::from_chars returned error)");
 //@     }
 
-//@   if (ptr != s.cend ())
+//@   if (ptr != s.data () + s.size ())
 //@     {
 //@       _LIBSH_TREIS_THROW_MESSAGE ("There is a garbagge after number");
 //@     }
