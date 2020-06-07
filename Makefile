@@ -14,10 +14,10 @@ all: lib.a
 FORCE:
 
 libsh-treis.hpp: libsh-treis.cpp
-	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@
+	grep -E '//@' $< | sed -E 's~ *//@ ?~~' > $@
 
 gnu-source.hpp: gnu-source.cpp
-	grep '//@' $< | sed 's~ *//@\( \|\)~~' > $@
+	grep -E '//@' $< | sed -E 's~ *//@ ?~~' > $@
 
 # Похоже, все остальные сорцы собираются без -DBOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE, и это плохо
 libsh-treis.o: libsh-treis.cpp FORCE
