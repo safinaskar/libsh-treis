@@ -5,9 +5,12 @@
   set -o pipefail
   shopt -s inherit_errexit
 
-  [ $# -lt 2 ] && echo "Usage: ${0##*/} SOURCE COMPILER [FLAG]..." >&2 && exit 1
+  # Принимаем MAKE, чтобы вызвать правильный make, и чтобы внешний make распознал команду как рекурсивный вызов make
+  [ $# -lt 3 ] && echo "Usage: ${0##*/} MAKE SOURCE COMPILER [COMPILER-FLAG]..." >&2 && exit 1
 
-  SOURCE="$1"
+  MAKE="$1"
+  SOURCE="$2"
+  shift
   shift
 
   # Из-за багов gcc и clang использовать -MM -MG невозможно
@@ -38,7 +41,7 @@
       else
         local FULL="$INCLUDE"
       fi
-      make "$FULL"
+      "$MAKE" "$FULL"
       if ! [ -f "$FULL" ]; then
         echo "${0##*/}: $FULL: not found, make didn't create it" >&2
         exit 1
