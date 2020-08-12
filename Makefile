@@ -2,10 +2,18 @@ export
 
 CXX ?= c++
 AR ?= ar
+BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
+
+# -fsanitize=address не совместим с моими настройками overcommit. То же с -fsanitize=thread
+ifeq ($(RELEASE),1)
 CPPFLAGS ?= -DNDEBUG
 CXXFLAGS ?= -O3 -g -Wall -Wextra -pedantic
-LDFLAGS ?=
-BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
+LDFLAGS ?= -O3 -g
+else
+CPPFLAGS ?=
+CXXFLAGS ?= -g -Wall -Wextra -pedantic -fsanitize=undefined,bounds,nullability,float-divide-by-zero,implicit-conversion -fno-sanitize-recover=all -fno-omit-frame-pointer
+LDFLAGS ?= -g -fsanitize=undefined,bounds,nullability,float-divide-by-zero,implicit-conversion -fno-sanitize-recover=all -fno-omit-frame-pointer
+endif
 
 all: lib.a
 
