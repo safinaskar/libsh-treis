@@ -1179,6 +1179,19 @@ x_fclose (FILE *stream)//@;
 }
 } //@;
 
+#include <unistd.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_fsync (int fildes)//@;
+{
+  if (fsync (fildes) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
