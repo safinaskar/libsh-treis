@@ -31,6 +31,13 @@
   OUT="${SOURCE%.*}.o"
 
   process(){
+    if [ -f "$OUT" ]; then
+      if [ "$1" -nt "$OUT" ]; then
+        COMPILE=true
+      fi
+    else
+      COMPILE=true
+    fi
     local REGEX='^ *# *include +"([^/].*)" *$'
     NON_LOCAL_HEADERS="$(my_grep -E "$REGEX" "$1" | sed -E "s~$REGEX~\\1~" | my_grep -vE ' ')"
     local HEADERS="$NON_LOCAL_HEADERS"
@@ -45,13 +52,6 @@
       if ! [ -f "$FULL" ]; then
         echo "${0##*/}: $FULL: not found, make didn't create it" >&2
         exit 1
-      fi
-      if [ -f "$OUT" ]; then
-        if [ "$FULL" -nt "$OUT" ]; then
-          COMPILE=true
-        fi
-      else
-        COMPILE=true
       fi
       process "$FULL"
     done
