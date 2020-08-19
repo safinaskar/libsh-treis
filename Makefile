@@ -4,7 +4,6 @@ CXX ?= c++
 AR ?= ar
 BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
 
-# -fsanitize=address не совместим с моими настройками overcommit. То же с -fsanitize=thread
 ifeq ($(RELEASE),1)
 CPPFLAGS ?= -DNDEBUG
 CXXFLAGS ?= -O3 -g -Wall -Wextra -pedantic
