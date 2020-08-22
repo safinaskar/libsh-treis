@@ -287,6 +287,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@
 //@   explicit cstring_span (char *data, std::size_t size) noexcept : _data (data), _size (size)
 //@   {
+//@     assert (strlen (data) == size);
 //@   }
 //@
 //@   friend cstring_span
@@ -336,7 +337,6 @@ namespace libsh_treis::tools //@
 cstring_span //@
 make_cstring_span_unsafe (char *data, std::size_t size) noexcept//@;
 {
-  assert (strlen (data) == size);
   return cstring_span (data, size);
 }
 } //@
