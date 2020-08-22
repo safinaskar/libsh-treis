@@ -325,6 +325,11 @@ make_cstring_span (char *data, std::size_t size)//@;
         }
     }
 
+  if (data[size] != '\0')
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("String is too long");
+    }
+
   return cstring_span (data, size);
 }
 } //@
