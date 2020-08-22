@@ -1197,6 +1197,40 @@ x_fsync (int fildes)//@;
 }
 } //@
 
+//@ #include <signal.h>
+namespace libsh_treis::libc //@
+{ //@
+struct sigaction //@
+x_sigaction (int sig, const struct sigaction *act)//@;
+{
+  struct sigaction oact;
+
+  if (sigaction (sig, act, &oact) == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return oact;
+}
+} //@
+
+//@ #include <signal.h>
+namespace libsh_treis::libc //@
+{ //@
+sigset_t //@
+x_sigemptyset (void)//@;
+{
+  sigset_t result;
+
+  if (sigemptyset (&result) == -1)
+    {
+      THROW_ERRNO;
+    }
+
+  return result;
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
