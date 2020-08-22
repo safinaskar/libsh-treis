@@ -947,10 +947,20 @@ namespace libsh_treis::libc //@
 void //@
 x_clock_nanosleep (clockid_t clock_id, int flags, const timespec *request)//@;
 {
+  if (flags != TIMER_ABSTIME)
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("Реализован только TIMER_ABSTIME");
+    }
+
   int err = clock_nanosleep (clock_id, flags, request, nullptr);
 
   if (err != 0)
     {
+      if (err == EINTR)
+        {
+          return x_clock_nanosleep (clock_id, flags, request);
+        }
+
       errno = err;
       THROW_ERRNO;
     }
