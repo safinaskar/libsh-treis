@@ -2081,7 +2081,7 @@ x_fopen (const char *pathname, const char *mode)//@;
 //@         --result;
 //@       }
 //@
-//@     return std::unique_ptr<libsh_treis::tools::cstring_span> (new auto (libsh_treis::tools::make_cstring_span (line, result)));
+//@     return std::make_unique<libsh_treis::tools::cstring_span> (libsh_treis::tools::make_cstring_span (line, result));
 //@   }
 //@ };
 //@ }
