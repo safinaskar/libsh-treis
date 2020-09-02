@@ -1352,6 +1352,36 @@ xx_snprintf (std::span<char> s, const char *format, ...)//@;
 }
 } //@
 
+#include <string.h>
+namespace libsh_treis::libc //@
+{ //@
+const char * //@
+xx_strrchr (const char *s, int c)//@;
+{
+  const char *result = strrchr (s, c);
+
+  if (result == nullptr)
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("Character not found");
+    }
+
+  return result;
+}
+
+char * //@
+xx_strrchr (char *s, int c)//@;
+{
+  char *result = strrchr (s, c);
+
+  if (result == nullptr)
+    {
+      _LIBSH_TREIS_THROW_MESSAGE ("Character not found");
+    }
+
+  return result;
+}
+} //@
+
 // Прочие функции
 
 // Такая функция пригодится (т. е. именно с таким API), если, скажем, нужно прочитать первые 1000 байт файла, чтобы узнать, текстовый ли этот файл
