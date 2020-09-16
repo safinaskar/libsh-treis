@@ -347,6 +347,15 @@ make_cstring_span_unsafe (char *data, std::size_t size) noexcept//@;
 }
 } //@
 
+//@ namespace libsh_treis::tools
+//@ {
+//@ // Соответствует понятию из стандарта
+//@ template <typename T> concept Cpp17Destructible = requires (T x)
+//@ {
+//@   { x.~T () } noexcept;
+//@ };
+//@ }
+
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
