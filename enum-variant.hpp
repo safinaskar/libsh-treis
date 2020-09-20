@@ -1,6 +1,14 @@
 // Нет никаких ограничений на типы, которые можно положить в enum_variant, кроме указанных в requires
 // LIBSH_TREIS_SWITCH работает так же, как обычный switch или обычный statement: все деструкторы временных объектов вызываются после вычисления выражения, переданного в LIBSH_TREIS_SWITCH. Сам enum_variant, переданный в LIBSH_TREIS_SWITCH запоминается с правильным ссылочным типом, и далее биндинги инициализируются с правильным ссылочным типом. Внутри LIBSH_TREIS_SWITCH и LIBSH_TREIS_CASE можно использовать обычные break, return и т. д.
 
+// TODO
+// - Убрать valueless_by_exception (и занести в гарантии)
+// -- Реализовать свой swap?
+// - Проверить, что работают рекурсивные enum_variant (и занести в гарантии)
+// - value-category-polymorphic геттеры
+// - Снабдить специальные методы правильными requires (и занести в гарантии)
+// - Сделать так, чтобы использовать классы, унаследованные от enum_variant, было удобно (и занести в гарантии)
+
 #pragma once
 
 #include <assert.h>
@@ -40,9 +48,9 @@ public:
   }
 
   enum_variant (enum_variant &&) = default;
-  enum_variant (const enum_variant &) = delete; //WR
+  enum_variant (const enum_variant &) = default;
   enum_variant &operator= (enum_variant &&) = default;
-  enum_variant &operator= (const enum_variant &) = delete; //WR
+  enum_variant &operator= (const enum_variant &) = default;
 
   ~enum_variant (void) noexcept
   {
