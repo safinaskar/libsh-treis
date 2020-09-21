@@ -1,16 +1,18 @@
 export
 
+include common.mk
+
 CXX ?= c++
 AR ?= ar
 BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE ?=
 
 ifeq ($(RELEASE),1)
 CPPFLAGS ?= -DNDEBUG
-CXXFLAGS ?= -O3 -g -Wall -Wextra -pedantic
+CXXFLAGS ?= -O3 -g $(WARNS) -pedantic
 LDFLAGS ?= -O3 -g
 else
 CPPFLAGS ?=
-CXXFLAGS ?= -g -Wall -Wextra -pedantic -fsanitize=undefined,bounds,nullability,float-divide-by-zero,implicit-conversion,address -fno-sanitize-recover=all -fno-omit-frame-pointer -fsanitize-address-use-after-scope -fno-optimize-sibling-calls
+CXXFLAGS ?= -g $(WARNS) -pedantic -fsanitize=undefined,bounds,nullability,float-divide-by-zero,implicit-conversion,address -fno-sanitize-recover=all -fno-omit-frame-pointer -fsanitize-address-use-after-scope -fno-optimize-sibling-calls
 LDFLAGS ?= -g -fsanitize=undefined,bounds,nullability,float-divide-by-zero,implicit-conversion,address -fno-sanitize-recover=all -fno-omit-frame-pointer -fsanitize-address-use-after-scope -fno-optimize-sibling-calls
 endif
 
