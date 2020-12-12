@@ -304,6 +304,12 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@     return _data;
 //@   }
 //@
+//@   std::string_view
+//@   sv (void) const noexcept
+//@   {
+//@     return std::string_view (_data, _size);
+//@   }
+//@
 //@   std::span<char>
 //@   span_nunu (void) const noexcept
 //@   {
