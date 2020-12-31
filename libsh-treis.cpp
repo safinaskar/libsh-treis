@@ -1257,6 +1257,19 @@ x_sigemptyset (void)//@;
 }
 } //@
 
+#include <stdio.h>
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_rename (const char *oldpath, const char *newpath)//@;
+{
+  if (rename (oldpath, newpath) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
