@@ -94,6 +94,7 @@
 // - Написанные мной либы при любом раскладе должны быть в одной папке с приложением (как с node_modules), чтобы можно было быстро добавить какой-нибудь код для дебага и запустить
 // - "More importantly, the mapper approach seemed like a promising way to resolve many long-standing issues with handling auto-generated headers" - C++'s P1842
 // - https://github.com/ndmitchell/build-shootout
+// - https://www.opennet.ru/opennews/art.shtml?num=52215
 // - Фичи для моей системы сборки
 // -- базовый make
 // -- поиск циклов
