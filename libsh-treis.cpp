@@ -1271,6 +1271,18 @@ x_rename (const char *oldpath, const char *newpath)//@;
 }
 } //@
 
+namespace libsh_treis::libc //@
+{ //@
+void //@
+x_renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)//@;
+{
+  if (libsh_treis::libc::bp::bp_renameat2 (olddirfd, oldpath, newdirfd, newpath, flags) == -1)
+    {
+      THROW_ERRNO;
+    }
+}
+} //@
+
 // xx-обёртки
 
 // Сбрасывает err flag перед вызовом getc
