@@ -1119,7 +1119,7 @@ x_gmtime_r (time_t t)//@;
 //@ #include <stddef.h>
 //@ #include <time.h>
 //@ #include <span>
-namespace libsh_treis::libc //@
+namespace libsh_treis::libc::no_raii //@
 { //@
 libsh_treis::tools::cstring_span //@
 x_strftime (std::span<char> s, const char *format, const tm &tm)//@;
