@@ -311,6 +311,12 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@     return std::string_view (_data, _size);
 //@   }
 //@
+//@   std::string
+//@   str (void) const
+//@   {
+//@     return std::string (this->sv ());
+//@   }
+//@
 //@   std::span<char>
 //@   span_nunu (void) const noexcept
 //@   {
@@ -2126,3 +2132,15 @@ x_fopen (const char *pathname, const char *mode)//@;
 //@   }
 //@ };
 //@ }
+
+// Вы должны позаботиться, чтобы эта функция всегда писала непустую строку
+// Мы просто ставим лимит на длину строки. Если лимит будет достигнут, будет исключение
+namespace libsh_treis::libc //@
+{ //@
+std::string //@
+x_strftime (const char *format, const tm &tm)//@;
+{
+  char buffer[256];
+  return libsh_treis::libc::no_raii::x_strftime (buffer, format, tm).str ();
+}
+} //@
