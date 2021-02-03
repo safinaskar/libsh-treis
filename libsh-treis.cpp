@@ -2144,3 +2144,14 @@ x_strftime (const char *format, const tm &tm)//@;
   return libsh_treis::libc::no_raii::x_strftime (buffer, format, tm).str ();
 }
 } //@
+
+// Берёт timespec и превращает его в строчку, показывающую время в UTC, т. е. делает нечто, похожее на strftime. Но в отличие от strftime дописывает секунды, точку и наносекунды
+//@ #include <time.h>
+namespace libsh_treis::libc //@
+{ //@
+std::string //@
+utc_nanoseconds (const char *format, const timespec &spec)//@;
+{
+  return x_strftime (format, x_gmtime_r (spec.tv_sec)) + x_strftime ("%S", x_gmtime_r (spec.tv_sec)) + x_asprintf (".%09d", (int)spec.tv_nsec);
+}
+} //@
