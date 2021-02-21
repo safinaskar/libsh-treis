@@ -35,6 +35,6 @@ program_invocation_name_reexported (void) noexcept//@;
 namespace libsh_treis::libc::detail //@
 { //@
 //@ extern
-constinit long (* syscall_reexported) (long, ...)//@;
+constinit long (* const syscall_reexported) (long, ...)//@;
 = &syscall;
 } //@
