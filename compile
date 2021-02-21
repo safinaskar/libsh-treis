@@ -60,8 +60,8 @@
 
   process "$SOURCE"
   if "$COMPILE"; then
-    printf '%s\n' "$* -c $SOURCE"
-    "$@" -c "$SOURCE"
+    printf '%s\n' "$* -ffile-prefix-map=$PWD=. -c $SOURCE"
+    "$@" -ffile-prefix-map="$PWD"=. -c "$SOURCE"
   fi
   exit 0
 }
