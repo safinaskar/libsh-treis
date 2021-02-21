@@ -20,7 +20,7 @@ vasprintf_reexported (char **strp, const char *fmt, va_list ap) noexcept//@;
 } //@
 
 #include <errno.h>
-namespace libsh_treis::detail //@
+namespace libsh_treis::libc::detail //@
 { //@
 char * //@
 program_invocation_name_reexported (void) noexcept//@;

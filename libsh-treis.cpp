@@ -200,12 +200,12 @@ is_successful (const std::function<void(void)> &func) noexcept//@;
   catch (const std::exception &ex)
     {
       // Имя программы обязательно, иначе нельзя понять, какая именно из программ в пайпе свалилась
-      fprintf (stderr, "%s: %s\n", libsh_treis::detail::program_invocation_name_reexported (), ex.what ());
+      fprintf (stderr, "%s: %s\n", libsh_treis::libc::detail::program_invocation_name_reexported (), ex.what ());
       return false;
     }
   catch (...)
     {
-      fprintf (stderr, "%s: unknown exception\n", libsh_treis::detail::program_invocation_name_reexported ());
+      fprintf (stderr, "%s: unknown exception\n", libsh_treis::libc::detail::program_invocation_name_reexported ());
       return false;
     }
 
@@ -253,7 +253,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@         } \
 //@       else \
 //@         { \
-//@           fprintf (stderr, "%s", (libsh_treis::detail::program_invocation_name_reexported () + std::string (": ") + __PRETTY_FUNCTION__ + std::string (": assertion \"") + #assertion + std::string ("\" failed\n") + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())).c_str ()); \
+//@           fprintf (stderr, "%s", (libsh_treis::libc::detail::program_invocation_name_reexported () + std::string (": ") + __PRETTY_FUNCTION__ + std::string (": assertion \"") + #assertion + std::string ("\" failed\n") + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())).c_str ()); \
 //@           exit (EXIT_FAILURE); \
 //@         } \
 //@     } \
