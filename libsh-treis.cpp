@@ -1277,12 +1277,14 @@ x_rename (const char *oldpath, const char *newpath)//@;
 }
 } //@
 
+//@ #include <fcntl.h> // For AT_FDCWD
+//@ #include <linux/fs.h> // For RENAME_EXCHANGE, ...
 namespace libsh_treis::libc //@
 { //@
 void //@
 x_renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)//@;
 {
-  if (libsh_treis::libc::bp::bp_renameat2 (olddirfd, oldpath, newdirfd, newpath, flags) == -1)
+  if ((*libsh_treis::libc::detail::syscall_reexported) (SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, flags) == -1)
     {
       THROW_ERRNO;
     }
