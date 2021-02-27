@@ -369,6 +369,16 @@ make_cstring_span_unsafe (char *data, std::size_t size) noexcept//@;
 //@ };
 //@ }
 
+//@ #include <memory>
+//@ namespace libsh_treis::tools
+//@ {
+//@ template <typename T> std::unique_ptr<T>
+//@ ptr_to_unique (T *ptr)
+//@ {
+//@   return std::unique_ptr<T> (ptr);
+//@ }
+//@ }
+
 // Простые обёртки
 
 //@ #include <sys/types.h> // size_t, ssize_t
