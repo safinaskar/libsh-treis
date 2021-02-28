@@ -427,7 +427,7 @@ x_read (int fildes, std::span<std::byte> buf)//@;
 namespace libsh_treis::libc //@
 { //@
 int //@
-x_fgetc_nunu (FILE *stream)//@;
+x_fgetc (FILE *stream)//@;
 {
   clearerr (stream);
 
@@ -1310,7 +1310,7 @@ namespace libsh_treis::libc //@
 char //@
 xx_fgetc_nunu (FILE *stream)//@;
 {
-  int result = x_fgetc_nunu (stream);
+  int result = x_fgetc (stream);
 
   if (result == EOF)
     {
