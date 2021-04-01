@@ -30,6 +30,7 @@
   COMPILE=false
   OUT="${SOURCE%.*}.o"
 
+  # Здесь нет fork-бомбы
   process(){
     if [ -f "$OUT" ]; then
       if [ "$1" -nt "$OUT" ]; then
