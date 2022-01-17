@@ -34,7 +34,11 @@ program_invocation_name_reexported (void) noexcept//@;
 #include <unistd.h>
 namespace libsh_treis::libc::detail //@
 { //@
+
+// gcc 10.2.1 ругается на строчку "extern constinit long (* const syscall_reexported) (long, ...);" в хедере. Говорит, функция не может вернуть constinit. Т. е. gcc считает, что constinit относится к return value, а не к function pointer. Reported: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=104066
+
+//@ typedef long (*syscall_reexported_t) (long, ...);
 //@ extern
-constinit long (* const syscall_reexported) (long, ...)//@;
+constinit const syscall_reexported_t syscall_reexported//@;
 = &syscall;
 } //@

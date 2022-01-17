@@ -1931,6 +1931,30 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@     return _size;
 //@   }
 
+//@   const T *
+//@   begin (void) const noexcept
+//@   {
+//@     return _ptr;
+//@   }
+
+//@   T *
+//@   begin (void) noexcept
+//@   {
+//@     return _ptr;
+//@   }
+
+//@   const T *
+//@   end (void) const noexcept
+//@   {
+//@     return _ptr + _size;
+//@   }
+
+//@   T *
+//@   end (void) noexcept
+//@   {
+//@     return _ptr + _size;
+//@   }
+
 //@   const T &
 //@   operator[] (std::size_t i) const noexcept
 //@   {

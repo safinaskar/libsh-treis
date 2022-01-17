@@ -43,7 +43,8 @@ public:
   typedef Tag tag_t;
 
   // Конструктор, а не статический метод, чтобы удобно инициализировать поля структуры с помощью designated initializers
-  template <Tag Tg, typename... Args> explicit enum_variant (in_place_tag_t<Tg>, Args &&... args) : _v (std::in_place_index<std::size_t (Tg)>, std::forward<Args> (args)...)
+  // Я не поставил explicit из-за https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91319
+  template <Tag Tg, typename... Args> enum_variant (in_place_tag_t<Tg>, Args &&... args) : _v (std::in_place_index<std::size_t (Tg)>, std::forward<Args> (args)...)
   {
   }
 
