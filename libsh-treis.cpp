@@ -6,13 +6,6 @@
 
 // Сборка этой либы
 // - Написан на C++20, проекты на этой либе должны использовать как минимум C++20
-// - Зависит от boost stacktrace. Причём от той версии, где поддерживается BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE и где есть boost::stacktrace::to_string (const boost::stacktrace::stacktrace &). В частности, 1.71 поддерживается, а 1.67 - нет
-
-// Сборка с либой
-// - Все файлы, которые линкуются с либой (и саму либу), рекомендуется собирать с -O0 -g, чтобы работал backtrace
-
-// Runtime
-// - Чтобы backtrace работал хорошо, /proc должен быть смонтирован
 
 // Про саму либу
 // - В пространстве libsh_treis::libc::no_raii бросаются исключения в случае ошибок, но есть нарушения RAII
@@ -111,8 +104,6 @@
 //@ #include <stdexcept>
 //@ #include <string>
 
-//@ #include <boost/stacktrace.hpp>
-
 //@ #include "gnu-source.hpp"
 
 #include <stdio.h>
@@ -131,12 +122,7 @@ using namespace std::string_literals;
 //@ #define _LIBSH_TREIS_THROW_MESSAGE(m) \
 //@   do \
 //@     { \
-//@       auto str = boost::stacktrace::to_string (boost::stacktrace::stacktrace ()); \
-//@       if (!str.empty ()) \
-//@         { \
-//@           str.pop_back (); \
-//@         } \
-//@       throw std::runtime_error (__PRETTY_FUNCTION__ + std::string (": ") + (m) + "\n" + str); \
+//@       throw std::runtime_error (__PRETTY_FUNCTION__ + std::string (": ") + (m)); \
 //@     } \
 //@   while (false)
 
@@ -164,12 +150,7 @@ x_strerror_l (int errnum, locale_t locale)//@;
   do \
     { \
       int saved_errno = errno; \
-      auto str = boost::stacktrace::to_string (boost::stacktrace::stacktrace ()); \
-      if (!str.empty ()) \
-        { \
-          str.pop_back (); \
-        } \
-      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + x_strerror_l (saved_errno, (locale_t)0) + "\n" + str); \
+      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + x_strerror_l (saved_errno, (locale_t)0)); \
     } \
   while (false)
 
@@ -178,12 +159,7 @@ x_strerror_l (int errnum, locale_t locale)//@;
   do \
     { \
       int saved_errno = errno; \
-      auto str = boost::stacktrace::to_string (boost::stacktrace::stacktrace ()); \
-      if (!str.empty ()) \
-        { \
-          str.pop_back (); \
-        } \
-      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + (m) + ": "s + x_strerror_l (saved_errno, (locale_t)0) + "\n" + str); \
+      throw std::runtime_error (__PRETTY_FUNCTION__ + ": "s + (m) + ": "s + x_strerror_l (saved_errno, (locale_t)0)); \
     } \
   while (false)
 
@@ -253,7 +229,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 //@         } \
 //@       else \
 //@         { \
-//@           fprintf (stderr, "%s", (libsh_treis::libc::detail::program_invocation_name_reexported () + std::string (": ") + __PRETTY_FUNCTION__ + std::string (": assertion \"") + #assertion + std::string ("\" failed\n") + boost::stacktrace::to_string (boost::stacktrace::stacktrace ())).c_str ()); \
+//@           fprintf (stderr, "%s", (libsh_treis::libc::detail::program_invocation_name_reexported () + std::string (": ") + __PRETTY_FUNCTION__ + std::string (": assertion \"") + #assertion + std::string ("\" failed")).c_str ()); \
 //@           exit (EXIT_FAILURE); \
 //@         } \
 //@     } \
@@ -279,6 +255,7 @@ main_helper (const std::function<void(void)> &func) noexcept//@;
 // Класс поддерживает инвариант: строка не содержит нулевых байт. Если будет добавлен новый способ создания строки, и вы сможете создать с его помощью строку с нулевыми байтами, вы получаете UB
 // Не было попытки добавить все способы конвертации из cstring_span и в cstring_span
 //@ #include <cstddef>
+//@ #include <cassert>
 //@ #include <span>
 //@ namespace libsh_treis::tools
 //@ {
@@ -1864,6 +1841,7 @@ x_waitpid_raii (std::unique_ptr<process> proc, int options)//@;
 //@ // ospan нельзя перемещать. Копировать можно, но на данный момент не реализовано
 //@ // Методы begin и end нужны, иначе в debian sid от 2022-05-30 с clang'ом из репы debian нельзя конвертить этот ospan в span
 //@ #include <cstddef>
+//@ #include <cassert>
 //@ #include <type_traits>
 //@ #include <utility>
 //@ namespace libsh_treis::tools
